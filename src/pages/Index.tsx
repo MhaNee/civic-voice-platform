@@ -5,55 +5,46 @@ import StatsCard from "@/components/StatsCard";
 import { Radio, Users, MessageSquare, TrendingUp, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "/images/PARLIAMENT-4-1-678x381.jpg";
-// import heroImage from "/image.png";
-// import heroImage from "@/assets/hero-capitol.jpg";
 import { supabase } from "@/integrations/supabase/client";
-
 import { useHearings, useAnnouncements } from "@/hooks/useData";
+import { useAuth } from "@/hooks/useAuth";
+import LandingPage from "@/components/LandingPage";
 
 export default function Index() {
+  const { user } = useAuth();
   const { data: hearings = [] } = useHearings();
   const { data: announcements = [] } = useAnnouncements(true);
+
+  if (!user) {
+    return (
+      <Layout>
+        <LandingPage />
+      </Layout>
+    );
+  }
 
   const liveCount = hearings.filter(h => h.status === "live").length;
   const totalViewers = hearings.reduce((sum, h) => sum + (h.viewers || 0), 0);
 
   return (
     <Layout>
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImage} alt="Capitol building" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-civic opacity-80" />
-        </div>
-        <div className="container relative py-20 text-center">
-          <h1 className="animate-fade-up mb-4 font-display text-4xl font-black tracking-tight text-primary-foreground md:text-6xl">
-            Your Voice in <span className="text-gradient-gold">Legislation</span>
-          </h1>
-          <p className="animate-fade-up mx-auto mb-8 max-w-2xl text-lg text-primary-foreground/80" style={{ animationDelay: "0.1s" }}>
-            AI-powered civic engagement platform. Watch live hearings, share your opinion, and see how public sentiment shapes policy.
-          </p>
-          <div className="animate-fade-up flex justify-center gap-4" style={{ animationDelay: "0.2s" }}>
-            <Link
-              to="/hearing"
-              className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 font-semibold text-accent-foreground transition-transform hover:scale-105"
-            >
-              <Radio className="h-4 w-4" />
-              Watch Live
-            </Link>
-            <Link
-              to="/peoples-view"
-              className="inline-flex items-center gap-2 rounded-lg border border-primary-foreground/30 px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"
-            >
-              People's View
-              <ArrowRight className="h-4 w-4" />
+      {/* Dashboard Header */}
+      <section className="bg-primary text-white border-b border-border py-12">
+        <div className="container">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white text-foreground md:text-4xl">Welcome back, Citizen</h1>
+              <p className="text-muted-foreground mt-1">Here is what's happening in legislation today.</p>
+            </div>
+            <Link to="/hearing" className="bg-accent text-accent-foreground px-6 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 text-center">
+              Enter Live Hearing
             </Link>
           </div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="container -mt-8 relative z-10">
+      <section className="container -mt-6 relative z-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard icon={<Radio className="h-5 w-5" />} label="Live Sessions" value={String(liveCount)} />
           <StatsCard icon={<Users className="h-5 w-5" />} label="Total Viewers" value={totalViewers.toLocaleString()} />
@@ -96,3 +87,4 @@ export default function Index() {
     </Layout>
   );
 }
+

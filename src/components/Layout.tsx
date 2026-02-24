@@ -31,6 +31,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
 
+  const filteredNavItems = navItems.filter((item) => {
+    if (!user) {
+      // For visitors, only show specific public-facing links
+      return item.to === "/hearing";
+    }
+    // For logged in users, show all (or could filter further if needed)
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-background font-body">
       {/* Top nav */}
@@ -47,7 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const active = location.pathname === item.to;
               return (
                 <Link
@@ -63,6 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+
             {isAdmin && (
               <Link
                 to="/admin"
@@ -124,7 +134,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Mobile nav */}
         {mobileOpen && (
           <nav className="border-t border-border bg-card p-4 md:hidden">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const active = location.pathname === item.to;
               return (
                 <Link

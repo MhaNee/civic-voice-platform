@@ -135,8 +135,27 @@ export default function AdminDashboard() {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 p-8">
-                    <div className="mb-8 flex items-end justify-between">
+                <main className="flex-1 p-4 md:p-8">
+                    {/* Mobile Tabs */}
+                    <div className="mb-6 flex overflow-x-auto pb-2 md:hidden">
+                        <div className="flex gap-2">
+                            {sidebarItems.map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id as Tab)}
+                                    className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTab === item.id
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-card text-muted-foreground border border-border"
+                                        }`}
+                                >
+                                    <item.icon className="h-4 w-4" />
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                 <span>Admin</span>
@@ -147,19 +166,19 @@ export default function AdminDashboard() {
                                 {sidebarItems.find(i => i.id === activeTab)?.label}
                             </h1>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3">
                             {activeTab === "hearings" && (
-                                <div className="flex gap-3">
-                                    <Button variant="outline" className="gap-2" onClick={() => toast({ title: "Exporting...", description: "Hearing data is being exported to CSV." })}>
+                                <>
+                                    <Button variant="outline" size="sm" className="gap-2" onClick={() => toast({ title: "Exporting...", description: "Hearing data is being exported to CSV." })}>
                                         <FileText className="h-4 w-4" /> Export
                                     </Button>
-                                    <Button onClick={() => setIsAddingHearing(true)} className="gap-2">
+                                    <Button size="sm" onClick={() => setIsAddingHearing(true)} className="gap-2">
                                         <PlusCircle className="h-4 w-4" /> New Hearing
                                     </Button>
-                                </div>
+                                </>
                             )}
                             {activeTab === "announcements" && (
-                                <Button onClick={() => setIsAddingAnnouncement(true)} className="gap-2">
+                                <Button size="sm" onClick={() => setIsAddingAnnouncement(true)} className="gap-2">
                                     <PlusCircle className="h-4 w-4" /> Create Post
                                 </Button>
                             )}

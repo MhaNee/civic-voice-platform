@@ -60,9 +60,10 @@ export default function HearingPage() {
 
         {/* Video + panels */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Video */}
-          <div className="lg:col-span-2">
-            <div className="mb-4 aspect-video overflow-hidden rounded-xl bg-primary">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Video */}
+            <div className="aspect-video overflow-hidden rounded-xl bg-primary">
               {hearing?.stream_url ? (
                 <iframe
                   src={hearing.stream_url}
@@ -83,23 +84,24 @@ export default function HearingPage() {
             </div>
 
             {/* Caption Summary */}
-            <div className="mb-4">
-              <CaptionSummary transcriptText={MOCK_TRANSCRIPT_TEXT} />
-            </div>
+            <CaptionSummary transcriptText={MOCK_TRANSCRIPT_TEXT} />
 
             {/* Vote */}
-            {hearingId && (
-              <div className="mb-4">
-                <VotePanel hearingId={hearingId} />
-              </div>
-            )}
+            {hearingId && <VotePanel hearingId={hearingId} />}
 
-            <TranscriptPanel />
+            {/* Transcript - Boxed with internal scroll */}
+            <div className="h-[400px] lg:h-[600px] overflow-hidden rounded-xl border border-border">
+              <TranscriptPanel />
+            </div>
           </div>
 
-          {/* Comments */}
+          {/* Sidebar - Comments */}
           <div className="lg:col-span-1">
-            {hearingId ? <CommentPanel hearingId={hearingId} /> : (
+            {hearingId ? (
+              <div className="h-[500px] lg:h-[calc(100vh-250px)] lg:sticky lg:top-24">
+                <CommentPanel hearingId={hearingId} />
+              </div>
+            ) : (
               <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
                 Loading comments...
               </div>

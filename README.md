@@ -4,15 +4,15 @@ CivicLens is a modern, transparent platform designed to bridge the gap between l
 
 ## Features
 
+- **Landing Page**: A high-impact, public-facing landing page showcasing the platform's value proposition.
+- **Auth-Gated Access**: Restricted access to sensitive dashboards (Sentiment, Insights, Admin) to authenticated users only.
 - **Live Hearing Tracking**: Watch legislative hearings with real-time AI-generated caption summaries.
 - **Sentiment Analysis**: AI-powered analysis of public comments to gauge community reaction.
 - **Legislative Insights**: Briefing dashboards for policymakers summarizing key arguments, risks, and public feedback.
 - **Admin Console**: Functional dashboard for administrators to create and manage hearings, and promote users to administrative roles.
 - **User Profiles**: Personalized profiles for citizens to manage their identity and view their engagement.
 - **Performance & Caching**: Efficient data fetching and state management using React Query for a snappy, responsive experience.
-- **Proactive Surveys**: Automatically generated survey questions based on hearing transcripts and public discourse.
 - **Local Caching**: Robust data persistence using React Query and LocalStorage, allowing for offline access and faster subsequent loads.
-- **Regional Engagement**: Visual data representing engagement and sentiment across different geographic regions.
 
 ## Project info
 

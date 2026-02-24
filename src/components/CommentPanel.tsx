@@ -68,7 +68,7 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
         body: { text: newComment, type: "sentiment" },
       });
       if (data?.sentiment) sentiment = data.sentiment;
-    } catch {}
+    } catch { }
 
     const { error } = await supabase.from("comments").insert({
       hearing_id: hearingId,
@@ -99,13 +99,13 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
   };
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
+    <div className="flex h-full flex-col bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <h3 className="font-display text-lg font-bold text-foreground">Public Comments</h3>
         <span className="text-xs text-muted-foreground">{comments.length} comments</span>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ maxHeight: "500px" }}>
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {comments.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
         )}

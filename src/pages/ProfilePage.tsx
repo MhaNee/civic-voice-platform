@@ -56,8 +56,8 @@ export default function ProfilePage() {
     return (
         <Layout>
             <div className="container max-w-2xl py-12">
-                <div className="mb-8 flex items-center gap-6">
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-elevated">
+                <div className="mb-8 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-elevated">
                         {profile?.display_name?.slice(0, 1).toUpperCase() || user.email?.slice(0, 1).toUpperCase()}
                     </div>
                     <div>
@@ -90,9 +90,9 @@ export default function ProfilePage() {
                                 </div>
                                 <p className="text-xs text-muted-foreground">Email cannot be changed.</p>
                             </div>
-                            <Button type="submit" disabled={loading} className="gap-2">
+                            <Button type="submit" disabled={updateProfileMutation.isPending} className="gap-2">
                                 <Save className="h-4 w-4" />
-                                {loading ? "Saving..." : "Save Changes"}
+                                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                             </Button>
                         </form>
                     </section>

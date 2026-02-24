@@ -29,6 +29,8 @@ const persister = createSyncStoragePersister({
   storage: window.localStorage,
 });
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 const App = () => (
   <PersistQueryClientProvider
     client={queryClient}
@@ -42,11 +44,11 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/hearing" element={<HearingPage />} />
-            <Route path="/sentiment" element={<SentimentDashboard />} />
-            <Route path="/peoples-view" element={<PeoplesView />} />
-            <Route path="/insights" element={<InsightsPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/sentiment" element={<ProtectedRoute><SentimentDashboard /></ProtectedRoute>} />
+            <Route path="/peoples-view" element={<ProtectedRoute><PeoplesView /></ProtectedRoute>} />
+            <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
