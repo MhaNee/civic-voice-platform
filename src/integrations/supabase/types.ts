@@ -88,6 +88,7 @@ export type Database = {
           hearing_timestamp: string | null
           id: string
           sentiment: string | null
+          sentiment_confidence: number | null
           text: string
           upvotes: number | null
           user_id: string
@@ -98,6 +99,7 @@ export type Database = {
           hearing_timestamp?: string | null
           id?: string
           sentiment?: string | null
+          sentiment_confidence?: number | null
           text: string
           upvotes?: number | null
           user_id: string
@@ -108,6 +110,7 @@ export type Database = {
           hearing_timestamp?: string | null
           id?: string
           sentiment?: string | null
+          sentiment_confidence?: number | null
           text?: string
           upvotes?: number | null
           user_id?: string
@@ -192,6 +195,7 @@ export type Database = {
           id: string
           role: string | null
           sentiment: string | null
+          sentiment_confidence: number | null
           speaker: string
           text: string
           timestamp: string
@@ -202,6 +206,7 @@ export type Database = {
           id?: string
           role?: string | null
           sentiment?: string | null
+          sentiment_confidence?: number | null
           speaker: string
           text: string
           timestamp: string
@@ -212,6 +217,7 @@ export type Database = {
           id?: string
           role?: string | null
           sentiment?: string | null
+          sentiment_confidence?: number | null
           speaker?: string
           text?: string
           timestamp?: string

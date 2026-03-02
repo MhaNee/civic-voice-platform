@@ -20,7 +20,7 @@ serve(async (req) => {
     };
 
     if (type === "sentiment") {
-      systemPrompt = "You are a sentiment analysis tool for civic engagement. Analyze the given text and classify it.";
+      systemPrompt = "You are a sentiment analysis tool for civic engagement. Analyze the given text and classify it. Return both the sentiment label (positive/neutral/negative) and a confidence score between 0 and 1 indicating how sure you are of the classification.";
       body.messages = [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Analyze the sentiment of this comment about a legislative hearing: "${text}"` },
@@ -29,7 +29,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "classify_sentiment",
-          description: "Classify the sentiment of a public comment",
+          description: "Classify the sentiment of a public comment and include a confidence value",
           parameters: {
             type: "object",
             properties: {

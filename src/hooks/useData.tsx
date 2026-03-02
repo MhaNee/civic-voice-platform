@@ -166,3 +166,82 @@ export function useProfiles() {
         },
     });
 }
+
+// pull all comments so admin can compute per-user stats or re-run sentiment
+export function useComments() {
+    const queryClient = useQueryClient();
+    return useQuery({
+        queryKey: ["comments"],
+        queryFn: async (): Promise<Tables<"comments">[]> => {
+            const { data, error } = await supabase.from("comments").select("*");
+            if (error) throw error;
+            return data;
+        },
+    });
+}
+
+export function useDeleteProfileMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            // try to remove the auth user via edge function; requires service role key
+            try {
+                const { error: funcErr } = await supabase.functions.invoke("delete-user", {
+                    body: { userId },
+                });
+                if (funcErr) throw funcErr;
+            } catch (e) {
+                // ignore; we'll still attempt to remove profile row
+                console.warn("delete-user function failed", e);
+            }
+
+            const { error } = await supabase
+                .from("profiles")
+                .delete()
+                .eq("user_id", userId);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["profiles"] });
+            queryClient.invalidateQueries({ queryKey: ["comments"] });
+        },
+    });
+}
+
+export function useRecalculateSentimentMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (userId: string) => {
+            // fetch the user's comments
+            const { data: comments, error: fetchError } = await supabase
+                .from("comments")
+                .select("id, text")
+                .eq("user_id", userId);
+            if (fetchError) throw fetchError;
+            if (!comments) return;
+
+            for (const c of comments) {
+                try {
+                    const { data: ai } = await supabase.functions.invoke("analyze-sentiment", {
+                        body: { text: c.text, type: "sentiment" },
+                    });
+                    if (ai?.sentiment) {
+                        await supabase
+                            .from("comments")
+                            .update({
+                                sentiment: ai.sentiment,
+                                sentiment_confidence: ai.confidence,
+                            })
+                            .eq("id", c.id);
+                    }
+                } catch (e) {
+                    // ignore individual errors
+                    console.error("reanalyze comment failed", c.id, e);
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["comments"] });
+        },
+    });
+}

@@ -9,7 +9,7 @@ CivicLens is a modern, transparent platform designed to bridge the gap between l
 - **Live Hearing Tracking**: Watch legislative hearings with real-time AI-generated caption summaries.
 - **Sentiment Analysis**: AI-powered analysis of public comments to gauge community reaction.
 - **Legislative Insights**: Briefing dashboards for policymakers summarizing key arguments, risks, and public feedback.
-- **Admin Console**: Functional dashboard for administrators to create and manage hearings, and promote users to administrative roles.
+- **Admin Console**: Functional dashboard for administrators to create and manage hearings, view and edit user profiles, promote or remove users, and even trigger sentiment re‑analysis on user comments.  It also includes tools for managing announcements and monitoring AI sentiment metrics.
 - **User Profiles**: Personalized profiles for citizens to manage their identity and view their engagement.
 - **Performance & Caching**: Efficient in-memory data fetching and state management using React Query for a snappy, responsive experience.
 

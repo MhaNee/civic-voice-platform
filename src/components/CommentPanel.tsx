@@ -12,6 +12,7 @@ interface Comment {
   hearing_timestamp: string | null;
   upvotes: number | null;
   sentiment: string | null;
+  sentiment_confidence?: number | null;
   profile?: { display_name: string | null };
 }
 
@@ -63,11 +64,13 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
 
     // Get AI sentiment
     let sentiment = "neutral";
+    let confidence: number | null = null;
     try {
       const { data } = await supabase.functions.invoke("analyze-sentiment", {
         body: { text: newComment, type: "sentiment" },
       });
       if (data?.sentiment) sentiment = data.sentiment;
+      if (typeof data?.confidence === "number") confidence = data.confidence;
     } catch { }
 
     const { error } = await supabase.from("comments").insert({
@@ -75,6 +78,7 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
       user_id: user.id,
       text: newComment,
       sentiment,
+      sentiment_confidence: confidence,
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -118,7 +122,10 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
               <span className="text-sm font-semibold text-foreground">{c.profile?.display_name || "Anonymous"}</span>
               <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
               {c.sentiment && (
-                <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${sentimentBadge[c.sentiment] || sentimentBadge.neutral}`}>
+                <span
+                  className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${sentimentBadge[c.sentiment] || sentimentBadge.neutral}`}
+                  title={c.sentiment_confidence != null ? `Confidence: ${(c.sentiment_confidence * 100).toFixed(0)}%` : undefined}
+                >
                   {c.sentiment}
                 </span>
               )}

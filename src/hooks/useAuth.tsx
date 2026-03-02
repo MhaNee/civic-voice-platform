@@ -65,11 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(session);
       setUser(session?.user ?? null);
+
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        // Fetch profile in the background without blocking the loading state
+        fetchProfile(session.user.id);
       } else {
         setProfile(null);
       }
+
+      // Release the loading lock immediately so UI can render
       setLoading(false);
     });
 
@@ -104,42 +108,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    console.log("🚀 Starting sign out process...");
+    console.log("🚀 EXPLOSIVE SIGN OUT INITIATED");
+
+    // 1. Attempt Supabase signout (non-blocking)
+    supabase.auth.signOut().catch(err => console.error("Supabase signOut error:", err));
+
+    // 2. Clear ALL local storage related to the app
+    localStorage.clear();
+    console.log("🧹 LocalStorage wiped clean.");
+
+    // 3. Clear query cache
     try {
-      // 1. Tell Supabase to end the session
-      await supabase.auth.signOut();
-      console.log("✅ Supabase auth.signOut() completed.");
-    } catch (err) {
-      console.error("❌ Error signing out from Supabase:", err);
-    } finally {
-      console.log("🧹 Clearing local storage and reactive state...");
-
-      // 2. Clear all Supabase related keys from LocalStorage
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith("sb-") || key.includes("supabase")) {
-          localStorage.removeItem(key);
-          console.log(`🗑️ Removed key: ${key}`);
-        }
-      });
-
-      // 3. Clear react-query cache
       queryClient.clear();
-      console.log("✨ React Query cache cleared.");
-
-      // 4. Reset local auth state
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      console.log("👤 Local user state reset to null.");
-
-      // 5. Force a hard reload to the home page (landing page)
-      console.log("🔄 Redirecting to home via hard reload...");
-      window.location.replace("/");
-      // Secondary fallback to ensure reload triggers if already at "/"
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      console.log("✨ Query cache cleared.");
+    } catch (e) {
+      console.error("QueryClient clear error:", e);
     }
+
+    // 4. Reset all reactive states
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setLoading(false);
+    console.log("👤 All reactive states reset.");
+
+    // 5. Nuclear option: hard redirect to home
+    console.log("☢️ Executing hard reload to home...");
+    window.location.href = window.location.origin;
   };
 
   return (

@@ -26,9 +26,13 @@ import {
     useHearings,
     useProfiles,
     useAnnouncements,
+    useComments,
     useUpdateHearingMutation,
     useDeleteHearingMutation,
     useUpdateRoleMutation,
+    useUpdateProfileMutation,
+    useDeleteProfileMutation,
+    useRecalculateSentimentMutation,
     useUpdateAnnouncementMutation,
     useDeleteAnnouncementMutation
 } from "@/hooks/useData";
@@ -50,11 +54,15 @@ export default function AdminDashboard() {
     const { data: hearings = [], isLoading: loadingHearings } = useHearings();
     const { data: users = [], isLoading: loadingProfiles } = useProfiles();
     const { data: announcements = [], isLoading: loadingAnnouncements } = useAnnouncements(false);
+    const { data: comments = [] } = useComments();
 
     // Mutations
     const updateHearingStatusMutation = useUpdateHearingMutation();
     const deleteHearingMutation = useDeleteHearingMutation();
     const updateRoleMutation = useUpdateRoleMutation();
+    const updateProfileMutation = useUpdateProfileMutation();
+    const deleteProfileMutation = useDeleteProfileMutation();
+    const recalcSentimentMutation = useRecalculateSentimentMutation();
     const updateAnnouncementMutation = useUpdateAnnouncementMutation();
     const deleteAnnouncementMutation = useDeleteAnnouncementMutation();
 
@@ -329,6 +337,7 @@ export default function AdminDashboard() {
                                                 <tr className="border-b border-border bg-muted/50">
                                                     <th className="px-6 py-4 font-semibold">Citizen</th>
                                                     <th className="px-6 py-4 font-semibold">Role</th>
+                                                    <th className="px-6 py-4 font-semibold">Comments</th>
                                                     <th className="px-6 py-4 font-semibold">Joined at</th>
                                                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
                                                 </tr>
@@ -336,7 +345,16 @@ export default function AdminDashboard() {
                                             <tbody className="divide-y divide-border">
                                                 {users
                                                     .filter(u => u.display_name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                                    .map(u => (
+                                                    .map(u => {
+                                                        const userComments = comments.filter(c => c.user_id === u.user_id);
+                                                        const totalComments = userComments.length;
+                                                        const pos = userComments.filter(c => c.sentiment === 'positive').length;
+                                                        const neg = userComments.filter(c => c.sentiment === 'negative').length;
+                                                        const neu = userComments.filter(c => c.sentiment === 'neutral').length;
+                                                        const posPct = totalComments ? Math.round((pos / totalComments) * 100) : 0;
+                                                        const negPct = totalComments ? Math.round((neg / totalComments) * 100) : 0;
+                                                        const neuPct = totalComments ? Math.round((neu / totalComments) * 100) : 0;
+                                                        return (
                                                         <tr key={u.id} className="transition-colors hover:bg-muted/30">
                                                             <td className="px-6 py-4 flex items-center gap-3">
                                                                 <div className="h-8 w-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold">
@@ -350,18 +368,61 @@ export default function AdminDashboard() {
                                                                     {u.role}
                                                                 </span>
                                                             </td>
+                                                            <td className="px-6 py-4 text-xs">
+                                                                {totalComments} ({posPct}%+ / {negPct}%- / {neuPct}%0)
+                                                            </td>
                                                             <td className="px-6 py-4 text-muted-foreground text-xs">
                                                                 {new Date(u.created_at).toLocaleString()}
                                                             </td>
-                                                            <td className="px-6 py-4 text-right">
+                                                            <td className="px-6 py-4 text-right space-x-1">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        const name = prompt("Enter new display name", u.display_name);
+                                                                        if (name && name !== u.display_name) {
+                                                                            updateProfileMutation.mutate({ userId: u.user_id, display_name: name }, {
+                                                                                onSuccess: () => toast({ title: "Name updated" }),
+                                                                                onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    className="h-8 text-xs"
+                                                                >
+                                                                    Edit
+                                                                </Button>
+                                                                {totalComments > 0 && (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={() => recalcSentimentMutation.mutate(u.user_id, {
+                                                                            onSuccess: () => toast({ title: "Sentiment refreshed" }),
+                                                                            onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+                                                                        })}
+                                                                        className="h-8 text-xs"
+                                                                    >
+                                                                        Re‑analyze
+                                                                    </Button>
+                                                                )}
                                                                 {u.role !== 'admin' && (
                                                                     <Button variant="outline" size="sm" onClick={() => updateRole(u.user_id, 'admin')} className="h-8 text-xs">
                                                                         Promote
                                                                     </Button>
                                                                 )}
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() => deleteProfileMutation.mutate(u.user_id, {
+                                                                        onSuccess: () => toast({ title: "User removed" }),
+                                                                        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+                                                                    })}
+                                                                    className="h-8 text-xs"
+                                                                >
+                                                                    Delete
+                                                                </Button>
                                                             </td>
                                                         </tr>
-                                                    ))}
+                                                    )})}
                                             </tbody>
                                         </table>
                                     </div>
