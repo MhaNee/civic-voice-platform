@@ -19,16 +19,27 @@ const words = [
 
 export default function TopicCloud() {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 p-6">
-      {words.map((w) => (
-        <span
-          key={w.text}
-          className="cursor-pointer font-display font-bold text-primary transition-all hover:text-accent hover:scale-110"
-          style={{ fontSize: `${w.size}px`, opacity: w.opacity }}
-        >
-          {w.text}
-        </span>
-      ))}
+    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 p-4">
+      {words.map((w) => {
+        // Map size values (22-48) to responsive classes
+        const getResponsiveSize = (size: number) => {
+          if (size >= 44) return "text-3xl md:text-5xl";
+          if (size >= 36) return "text-2xl md:text-4xl";
+          if (size >= 30) return "text-xl md:text-3xl";
+          if (size >= 24) return "text-lg md:text-2xl";
+          return "text-sm md:text-xl";
+        };
+
+        return (
+          <span
+            key={w.text}
+            className={`cursor-pointer font-display font-bold text-primary transition-all hover:text-accent hover:scale-110 ${getResponsiveSize(w.size)}`}
+            style={{ opacity: w.opacity }}
+          >
+            {w.text}
+          </span>
+        );
+      })}
     </div>
   );
 }

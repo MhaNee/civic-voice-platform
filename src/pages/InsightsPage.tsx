@@ -29,7 +29,7 @@ const keyArguments = {
 const riskIndicators = [
   { topic: "Job displacement", risk: "high", detail: "65% negative sentiment on employment impact" },
   { topic: "Timeline feasibility", risk: "high", detail: "72% believe 5-year timeline is too aggressive" },
-  { topic: "Small business burden", risk: "medium", detail: "Mixed sentiment — tax credits help but may not be enough" },
+  { topic: "Small business burden", risk: "medium", detail: "Mixed sentiment - tax credits help but may not be enough" },
   { topic: "Public health framing", risk: "low", detail: "85% positive sentiment on health benefits" },
 ];
 

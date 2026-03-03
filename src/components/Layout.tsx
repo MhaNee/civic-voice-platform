@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   User,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,7 +29,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
+
+  const filteredNavItems = navItems.filter((item) => {
+    if (!user) {
+      // For visitors, only show specific public-facing links
+      return item.to === "/hearing";
+    }
+    // For logged in users, show all (or could filter further if needed)
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background font-body">
@@ -46,23 +56,35 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const active = location.pathname === item.to;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
                 </Link>
               );
             })}
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${location.pathname === "/admin"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-accent hover:bg-accent/10"
+                  }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Auth + Live indicator */}
@@ -75,11 +97,14 @@ export default function Layout({ children }: { children: ReactNode }) {
 
             {user ? (
               <div className="ml-2 flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent">
+                <Link
+                  to="/profile"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/20 text-accent transition-transform hover:scale-110"
+                >
                   <User className="h-4 w-4" />
-                </span>
+                </Link>
                 <button
-                  onClick={async () => { await signOut(); navigate("/"); }}
+                  onClick={() => { console.log("🖱️ Desktop Sign Out button clicked"); signOut(); }}
                   className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <LogOut className="h-4 w-4" />
@@ -109,27 +134,39 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Mobile nav */}
         {mobileOpen && (
           <nav className="border-t border-border bg-card p-4 md:hidden">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const active = location.pathname === item.to;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${location.pathname === "/admin"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-accent hover:bg-accent/10"
+                  }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin Console
+              </Link>
+            )}
             {user ? (
               <button
-                onClick={async () => { await signOut(); setMobileOpen(false); navigate("/"); }}
+                onClick={() => { console.log("🖱️ Mobile Sign Out button clicked"); signOut(); setMobileOpen(false); }}
                 className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
               >
                 <LogOut className="h-4 w-4" />
@@ -150,6 +187,6 @@ export default function Layout({ children }: { children: ReactNode }) {
       </header>
 
       <main>{children}</main>
-    </div>
+    </div >
   );
 }

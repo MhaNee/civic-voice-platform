@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { ThumbsUp, MessageSquare, Send, User } from "lucide-react";
+import { ThumbsUp, MessageSquare, Send, User, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAppStats } from "@/hooks/useAppStats";
 
 interface Comment {
   id: string;
@@ -12,6 +14,7 @@ interface Comment {
   hearing_timestamp: string | null;
   upvotes: number | null;
   sentiment: string | null;
+  sentiment_confidence?: number | null;
   profile?: { display_name: string | null };
 }
 
@@ -23,10 +26,16 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState("");
+  const [draftedComments, setDraftedComments] = useLocalStorage<Record<string, string>>("app:comment-drafts", {});
+  const [newComment, setNewComment] = useState(draftedComments[hearingId] || "");
   const [sending, setSending] = useState(false);
+  const [hasDraft, setHasDraft] = useState(!!draftedComments[hearingId]);
+  const { recordComment } = useAppStats();
 
   useEffect(() => {
+    setNewComment(draftedComments[hearingId] || "");
+    setHasDraft(!!draftedComments[hearingId]);
+    
     fetchComments();
 
     const channel = supabase
@@ -37,7 +46,7 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [hearingId]);
+  }, [hearingId, draftedComments]);
 
   const fetchComments = async () => {
     const { data } = await supabase
@@ -63,23 +72,32 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
 
     // Get AI sentiment
     let sentiment = "neutral";
+    let confidence: number | null = null;
     try {
       const { data } = await supabase.functions.invoke("analyze-sentiment", {
         body: { text: newComment, type: "sentiment" },
       });
       if (data?.sentiment) sentiment = data.sentiment;
-    } catch {}
+      if (typeof data?.confidence === "number") confidence = data.confidence;
+    } catch { }
 
     const { error } = await supabase.from("comments").insert({
       hearing_id: hearingId,
       user_id: user.id,
       text: newComment,
       sentiment,
+      sentiment_confidence: confidence,
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       setNewComment("");
+      const updated = { ...draftedComments };
+      delete updated[hearingId];
+      setDraftedComments(updated);
+      setHasDraft(false);
+      recordComment(); // track the comment in stats
+      toast({ title: "Comment posted", description: "Your comment has been shared." });
     }
     setSending(false);
   };
@@ -99,13 +117,13 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
   };
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
+    <div className="flex h-full flex-col bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <h3 className="font-display text-lg font-bold text-foreground">Public Comments</h3>
         <span className="text-xs text-muted-foreground">{comments.length} comments</span>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-4" style={{ maxHeight: "500px" }}>
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {comments.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
         )}
@@ -118,7 +136,10 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
               <span className="text-sm font-semibold text-foreground">{c.profile?.display_name || "Anonymous"}</span>
               <span className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</span>
               {c.sentiment && (
-                <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${sentimentBadge[c.sentiment] || sentimentBadge.neutral}`}>
+                <span
+                  className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${sentimentBadge[c.sentiment] || sentimentBadge.neutral}`}
+                  title={c.sentiment_confidence != null ? `Confidence: ${(c.sentiment_confidence * 100).toFixed(0)}%` : undefined}
+                >
                   {c.sentiment}
                 </span>
               )}
@@ -140,12 +161,29 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
         ))}
       </div>
 
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border p-4 space-y-2">
+        {hasDraft && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+            <AlertCircle className="h-3 w-3" />
+            <span>Draft saved. Continue where you left off.</span>
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             type="text"
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNewComment(val);
+              const updated = { ...draftedComments };
+              if (val.trim()) {
+                updated[hearingId] = val;
+              } else {
+                delete updated[hearingId];
+              }
+              setDraftedComments(updated);
+              setHasDraft(!!updated[hearingId]);
+            }}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder={user ? "Share your thoughts..." : "Sign in to comment..."}
             disabled={!user || sending}

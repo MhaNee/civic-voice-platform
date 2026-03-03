@@ -10,9 +10,29 @@ import SentimentDashboard from "./pages/SentimentDashboard";
 import PeoplesView from "./pages/PeoplesView";
 import InsightsPage from "./pages/InsightsPage";
 import AuthPage from "./pages/AuthPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes
+    },
+  },
+});
+
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// suppress noisy React Router future-flag warnings in console
+const originalWarn = console.warn.bind(console);
+console.warn = (...args: any[]) => {
+  const msg = args[0] && args[0].toString();
+  if (msg && msg.includes("React Router Future Flag Warning")) {
+    return; // ignore
+  }
+  originalWarn(...args);
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -24,9 +44,11 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/hearing" element={<HearingPage />} />
-            <Route path="/sentiment" element={<SentimentDashboard />} />
-            <Route path="/peoples-view" element={<PeoplesView />} />
-            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="/sentiment" element={<ProtectedRoute><SentimentDashboard /></ProtectedRoute>} />
+            <Route path="/peoples-view" element={<ProtectedRoute><PeoplesView /></ProtectedRoute>} />
+            <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

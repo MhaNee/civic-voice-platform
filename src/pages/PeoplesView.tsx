@@ -49,7 +49,7 @@ export default function PeoplesView() {
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold text-foreground">People's View</h1>
           <p className="mt-1 text-muted-foreground">
-            Civic insight dashboard — what the public thinks about the Clean Air Amendment Act.
+            Civic insight dashboard - what the public thinks about the Clean Air Amendment Act.
           </p>
         </div>
 

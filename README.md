@@ -1,73 +1,64 @@
-# Welcome to your Lovable project
+# CivicLens - AI-Powered Civic Engagement Platform
+
+CivicLens is a modern, transparent platform designed to bridge the gap between legislative hearings and public sentiment. Using advanced AI analysis, CivicLens provides real-time insights into legislative proceedings, helping citizens and policymakers understand the public's view on critical issues.
+
+## Features
+
+- **Landing Page**: A high-impact, public-facing landing page showcasing the platform's value proposition.
+- **Auth-Gated Access**: Restricted access to sensitive dashboards with optimized loading states to prevent UI hangs.
+- **Live Hearing Tracking**: Watch legislative hearings with real-time AI-generated caption summaries.
+- **Sentiment Analysis**: AI-powered analysis of public comments to gauge community reaction.
+- **Legislative Insights**: Briefing dashboards for policymakers summarizing key arguments, risks, and public feedback.
+- **Admin Console**: Functional dashboard for administrators to create and manage hearings, view and edit user profiles, promote or remove users, and even trigger sentiment re‑analysis on user comments.  It also includes tools for managing announcements and monitoring AI sentiment metrics.
+- **User Profiles**: Personalized profiles for citizens to manage their identity and view their engagement.
+- **Performance & Caching**: Efficient in-memory data fetching and state management using React Query for a snappy, responsive experience.
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Application Name**: CivicLens
+**Description**: Your Voice in Legislation - AI-powered civic engagement platform.
 
-## How can I edit this code?
+## Getting Started
 
-There are several ways of editing your application.
+### Prerequisites
 
-**Use Lovable**
+- Node.js & npm installed
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Local Development
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Follow these steps to get the project running locally:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Step 2: Navigate to the project directory
+cd civic-voice-platform
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Step 3: Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
+## Architecture & Tech Stack
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: Vite, React, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Icons**: Lucide React
+- **Data Visualization**: Recharts
+- **Backend/Auth**: Supabase
+- **AI/ML**: Custom Supabase Edge Functions for sentiment analysis and summarization.
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+To deploy this project, you can push your changes to GitHub and connect it to your preferred hosting provider (e.g., Vercel, Netlify) or use Supabase for hosting Edge Functions.
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT

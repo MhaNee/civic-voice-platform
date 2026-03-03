@@ -8,10 +8,52 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// custom fetch wrapper that suppresses noisy network errors
+const failedEndpoints = new Map<string, number>();
+const MAX_LOGS_PER_ENDPOINT = 1;
+
+const customFetch: typeof fetch = async (input, init) => {
+  const endpoint = typeof input === "string" ? input : input.url;
+  try {
+    return await fetch(input, init);
+  } catch (err: any) {
+    const logCount = (failedEndpoints.get(endpoint) || 0) + 1;
+    failedEndpoints.set(endpoint, logCount);
+    
+    // Only log once per endpoint to avoid console spam
+    if (logCount === MAX_LOGS_PER_ENDPOINT) {
+      const msg = err?.message || "Unknown error";
+      if (msg.includes("Failed to fetch") || msg.includes("ERR_NAME_NOT_RESOLVED")) {
+        console.warn(`🌐 Network unavailable. Supabase offline mode active.`);
+      } else {
+        console.warn(`Supabase request failed:`, msg);
+      }
+    }
+    throw err;
+  }
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  fetch: customFetch,
   auth: {
     storage: localStorage,
     persistSession: true,
-    autoRefreshToken: true,
+    autoRefreshToken: false,
   }
 });
+
+// Check if Supabase is reachable
+export async function isSupabaseAvailable(): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

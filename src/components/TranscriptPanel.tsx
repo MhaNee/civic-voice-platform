@@ -60,7 +60,7 @@ const sentimentColors = {
 
 export default function TranscriptPanel() {
   return (
-    <div className="flex h-full flex-col rounded-xl border border-border bg-card">
+    <div className="flex h-full flex-col bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <h3 className="font-display text-lg font-bold text-foreground">Live Transcript</h3>
         <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">

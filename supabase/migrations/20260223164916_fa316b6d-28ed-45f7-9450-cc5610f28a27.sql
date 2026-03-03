@@ -119,7 +119,7 @@ CREATE TRIGGER update_profiles_updated_at
 
 -- Seed initial hearing data
 INSERT INTO public.hearings (title, committee, description, stream_url, status, scheduled_at, viewers) VALUES
-  ('Clean Air Amendment Act — Environmental Impact Review', 'Environment & Public Works', 'Hearing to examine the environmental and economic impacts of the proposed Clean Air Amendment Act.', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'live', '2026-02-23 10:00:00+00', 12847),
-  ('Digital Privacy Rights — Consumer Protection Standards', 'Commerce & Technology', 'Review of proposed consumer data protection standards.', NULL, 'upcoming', '2026-02-24 14:00:00+00', 0),
-  ('Education Funding Reform — K-12 Budget Allocation', 'Education & Labor', 'Budget allocation hearing for K-12 education funding reform.', NULL, 'archived', '2026-02-21 10:00:00+00', 8432),
-  ('Healthcare Access Act — Rural Hospital Support', 'Health & Human Services', 'Hearing on rural hospital support under the Healthcare Access Act.', NULL, 'archived', '2026-02-19 10:00:00+00', 15203);
+  ('Clean Air Amendment Act  Environmental Impact Review', 'Environment & Public Works', 'Hearing to examine the environmental and economic impacts of the proposed Clean Air Amendment Act.', 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'live', '2026-02-23 10:00:00+00', 12847),
+  ('Digital Privacy Rights  Consumer Protection Standards', 'Commerce & Technology', 'Review of proposed consumer data protection standards.', NULL, 'upcoming', '2026-02-24 14:00:00+00', 0),
+  ('Education Funding Reform  K-12 Budget Allocation', 'Education & Labor', 'Budget allocation hearing for K-12 education funding reform.', NULL, 'archived', '2026-02-21 10:00:00+00', 8432),
+  ('Healthcare Access Act  Rural Hospital Support', 'Health & Human Services', 'Hearing on rural hospital support under the Healthcare Access Act.', NULL, 'archived', '2026-02-19 10:00:00+00', 15203);

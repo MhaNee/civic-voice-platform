@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-platform",
 };
 
 serve(async (req) => {
@@ -10,8 +10,8 @@ serve(async (req) => {
 
   try {
     const { text, type } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const API_KEY = Deno.env.get("CIVIC_VOICE_API_KEY") || Deno.env.get("LOVABLE_API_KEY");
+    if (!API_KEY) throw new Error("AI API Key is not configured");
 
     let systemPrompt = "";
     const body: any = {
@@ -20,7 +20,7 @@ serve(async (req) => {
     };
 
     if (type === "sentiment") {
-      systemPrompt = "You are a sentiment analysis tool for civic engagement. Analyze the given text and classify it.";
+      systemPrompt = "You are a sentiment analysis tool for civic engagement. Analyze the given text and classify it. Return both the sentiment label (positive/neutral/negative) and a confidence score between 0 and 1 indicating how sure you are of the classification.";
       body.messages = [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Analyze the sentiment of this comment about a legislative hearing: "${text}"` },
@@ -29,7 +29,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "classify_sentiment",
-          description: "Classify the sentiment of a public comment",
+          description: "Classify the sentiment of a public comment and include a confidence value",
           parameters: {
             type: "object",
             properties: {
@@ -85,10 +85,13 @@ serve(async (req) => {
       ];
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Using a generic gateway if configured, otherwise fallback to default
+    const GATEWAY_URL = Deno.env.get("AI_GATEWAY_URL") || "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+    const response = await fetch(GATEWAY_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

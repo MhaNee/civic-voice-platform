@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Landmark, LogIn, UserPlus } from "lucide-react";
+import BgImage from "/images/image.png";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
@@ -13,6 +14,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [role, setRole] = useState<'user' | 'admin'>("user");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
@@ -23,11 +25,11 @@ export default function AuthPage() {
     setLoading(true);
 
     if (isSignUp) {
-      const { error } = await signUp(email, password, displayName);
+      const { error } = await signUp(email, password, displayName, role);
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Check your email", description: "We sent you a verification link to confirm your account." });
+        toast({ title: "Signup successful", description: "Please goto the signin page login with your credentials." });
       }
     } else {
       const { error } = await signIn(email, password);
@@ -61,6 +63,21 @@ export default function AuthPage() {
               <div>
                 <Label htmlFor="name">Display Name</Label>
                 <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" required />
+              </div>
+            )}
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label>Account Type</Label>
+                <div className="flex gap-4">
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                    <input type="radio" name="role" value="user" checked={role === "user"} onChange={() => setRole("user")} className="sr-only" />
+                    <span className="text-sm font-medium">Citizen</span>
+                  </label>
+                  <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                    <input type="radio" name="role" value="admin" checked={role === "admin"} onChange={() => setRole("admin")} className="sr-only" />
+                    <span className="text-sm font-medium">Administrator</span>
+                  </label>
+                </div>
               </div>
             )}
             <div>
