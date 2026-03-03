@@ -34,7 +34,9 @@ const customFetch: typeof fetch = async (input, init) => {
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  fetch: customFetch,
+  global: {
+    fetch: customFetch,
+  },
   auth: {
     storage: localStorage,
     persistSession: true,
