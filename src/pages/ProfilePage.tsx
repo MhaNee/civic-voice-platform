@@ -71,14 +71,40 @@ export default function ProfilePage() {
             <div className="container max-w-3xl py-12">
                 {/* Header */}
                 <div className="mb-8 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-                    <div className="relative">
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-elevated overflow-hidden">
+                    <div className="relative group cursor-pointer" onClick={() => document.getElementById("avatar-input")?.click()}>
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-elevated overflow-hidden relative">
                             {avatarUrl ? (
                                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                             ) : (
                                 profile?.display_name?.slice(0, 1).toUpperCase() || user.email?.slice(0, 1).toUpperCase()
                             )}
+                            {/* Overlay Camera Icon on Hover */}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera className="h-8 w-8 text-white" />
+                            </div>
                         </div>
+                        <input
+                            type="file"
+                            id="avatar-input"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    if (file.size > 1024 * 1024) {
+                                        toast({ title: "File too large", description: "Please choose an image smaller than 1MB.", variant: "destructive" });
+                                        return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = (re) => {
+                                        const base64 = re.target?.result as string;
+                                        setAvatarUrl(base64);
+                                        toast({ title: "Avatar ready", description: "Don't forget to save your changes below." });
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
+                            }}
+                        />
                     </div>
                     <div>
                         <h1 className="font-display text-3xl font-bold text-foreground">{profile?.display_name || "Citizen"}</h1>
@@ -131,18 +157,14 @@ export default function ProfilePage() {
                                     placeholder="Your display name"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="avatarUrl">Avatar URL</Label>
-                                <div className="relative">
-                                    <Camera className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        id="avatarUrl"
-                                        value={avatarUrl}
-                                        onChange={(e) => setAvatarUrl(e.target.value)}
-                                        placeholder="https://example.com/avatar.jpg"
-                                        className="pl-10"
-                                    />
-                                </div>
+                            <div className="bg-muted/30 p-4 rounded-lg border border-border flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                    <Camera className="h-4 w-4" />
+                                    Avatar chosen from device
+                                </span>
+                                <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById("avatar-input")?.click()}>
+                                    Change Image
+                                </Button>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email Address</Label>
@@ -197,11 +219,10 @@ export default function ProfilePage() {
                                         <p className="text-sm">{c.text}</p>
                                         <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                                             <span>{new Date(c.created_at).toLocaleDateString()}</span>
-                                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                                                c.sentiment === 'positive' ? 'bg-green-500/10 text-green-600' :
-                                                c.sentiment === 'negative' ? 'bg-red-500/10 text-red-600' :
-                                                'bg-muted text-muted-foreground'
-                                            }`}>{c.sentiment || 'neutral'}</span>
+                                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${c.sentiment === 'positive' ? 'bg-green-500/10 text-green-600' :
+                                                    c.sentiment === 'negative' ? 'bg-red-500/10 text-red-600' :
+                                                        'bg-muted text-muted-foreground'
+                                                }`}>{c.sentiment || 'neutral'}</span>
                                             <span>👍 {c.upvotes || 0}</span>
                                         </div>
                                     </div>

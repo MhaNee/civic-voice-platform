@@ -24,29 +24,41 @@ interface CommentPanelProps {
 export default function CommentPanel({ hearingId }: CommentPanelProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentCache, setCommentCache] = useLocalStorage<Record<string, Comment[]>>("app:comments-cache", {});
+  const [comments, setComments] = useState<Comment[]>(commentCache[hearingId] || []);
   const [draftedComments, setDraftedComments] = useLocalStorage<Record<string, string>>("app:comment-drafts", {});
   const [newComment, setNewComment] = useState(draftedComments[hearingId] || "");
   const [sending, setSending] = useState(false);
   const [hasDraft, setHasDraft] = useState(!!draftedComments[hearingId]);
   const { recordComment } = useAppStats();
-  const [commentCache, setCommentCache] = useLocalStorage<Record<string, Comment[]>>("app:comments-cache", {});
 
   useEffect(() => {
     setNewComment(draftedComments[hearingId] || "");
     setHasDraft(!!draftedComments[hearingId]);
 
+    // Initial load from local cache if we have it
+    if (commentCache[hearingId]) {
+      setComments(commentCache[hearingId]);
+    }
+
     fetchComments();
 
     const channel = supabase
-      .channel("comments-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `hearing_id=eq.${hearingId}` }, () => {
+      .channel(`comments-${hearingId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "comments",
+        filter: `hearing_id=eq.${hearingId}`
+      }, () => {
         fetchComments();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [hearingId, draftedComments]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [hearingId]);
 
   const fetchComments = async () => {
     const { data } = await supabase
@@ -77,13 +89,31 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
       if (data?.sentiment) sentiment = data.sentiment;
     } catch { }
 
+    // Optimistic Update
+    const optimisticComment: Comment = {
+      id: `temp-${Math.random().toString(36).substring(2, 9)}`,
+      user_id: user.id || "",
+      text: newComment,
+      created_at: new Date().toISOString(),
+      hearing_timestamp: null,
+      upvotes: 0,
+      sentiment,
+      profile: { display_name: (user as any)?.user_metadata?.display_name || user.email?.split("@")[0] || "You" }
+    };
+
+    // Add to state immediately
+    setComments(prev => [optimisticComment, ...prev]);
+
     const { error } = await supabase.from("comments").insert({
       hearing_id: hearingId,
       user_id: user.id,
       text: newComment,
       sentiment,
     } as any);
+
     if (error) {
+      // Revert optimistic update on error
+      setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       setNewComment("");
@@ -92,6 +122,10 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
       setDraftedComments(updated);
       setHasDraft(false);
       recordComment();
+
+      // Refetch immediately so the user sees their comment without waiting for realtime
+      await fetchComments();
+
       toast({ title: "Comment posted", description: "Your comment has been shared." });
     }
     setSending(false);

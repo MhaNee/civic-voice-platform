@@ -54,7 +54,7 @@ export default function HearingPage() {
     return normalizedUrl;
   };
 
-  const hearingId = hearing?.id || "";
+  const hearingId = id || "";
 
   return (
     <Layout>

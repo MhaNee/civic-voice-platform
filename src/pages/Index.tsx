@@ -12,8 +12,29 @@ import LandingPage from "@/components/LandingPage";
 
 export default function Index() {
   const { user, loading } = useAuth();
-  const { data: hearings = [] } = useHearings();
-  const { data: comments = [] } = useComments();
+  const [cachedHearings, setCachedHearings] = useLocalStorage<any[]>("app:hearings-cache", []);
+  const [cachedComments, setCachedComments] = useLocalStorage<any[]>("app:comments-cache", []);
+
+  const { data: hearingsData = [] } = useHearings();
+  const { data: commentsData = [] } = useComments();
+
+  const [hearings, setHearings] = useState<any[]>(cachedHearings);
+  const [comments, setComments] = useState<any[]>(cachedComments);
+
+  useEffect(() => {
+    if (hearingsData.length > 0) {
+      setHearings(hearingsData);
+      setCachedHearings(hearingsData);
+    }
+  }, [hearingsData]);
+
+  useEffect(() => {
+    if (commentsData.length > 0) {
+      setComments(commentsData);
+      setCachedComments(commentsData);
+    }
+  }, [commentsData]);
+
   const announcements: any[] = [];
 
   if (loading && !user) {
