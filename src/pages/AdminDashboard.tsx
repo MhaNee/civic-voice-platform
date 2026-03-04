@@ -50,6 +50,8 @@ type Tab = "overview" | "hearings" | "users" | "announcements" | "analytics";
 
 
 import AdminAuth from "@/components/admin/AdminAuth";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useEffect } from "react";
 
 export default function AdminDashboard() {
     const { user, isAdmin, loading } = useAuth();
@@ -62,12 +64,43 @@ export default function AdminDashboard() {
     const [editNameField, setEditNameField] = useState("");
     const { toast } = useToast();
 
+    // Caching
+    const [cachedHearings, setCachedHearings] = useLocalStorage<any[]>("admin:hearings", []);
+    const [cachedUsers, setCachedUsers] = useLocalStorage<any[]>("admin:users", []);
+    const [cachedComments, setCachedComments] = useLocalStorage<any[]>("admin:comments", []);
+
     // Queries
-    const { data: hearings = [], isLoading: loadingHearings } = useHearings();
-    const { data: users = [], isLoading: loadingProfiles } = useProfiles();
+    const { data: hearingsData = [], isLoading: loadingHearings } = useHearings();
+    const { data: usersData = [], isLoading: loadingProfiles } = useProfiles();
+    const { data: commentsData = [] } = useComments();
+
+    const [hearings, setHearings] = useState<any[]>(cachedHearings);
+    const [users, setUsers] = useState<any[]>(cachedUsers);
+    const [comments, setComments] = useState<any[]>(cachedComments);
+
+    useEffect(() => {
+        if (hearingsData.length > 0) {
+            setHearings(hearingsData);
+            setCachedHearings(hearingsData);
+        }
+    }, [hearingsData]);
+
+    useEffect(() => {
+        if (usersData.length > 0) {
+            setUsers(usersData);
+            setCachedUsers(usersData);
+        }
+    }, [usersData]);
+
+    useEffect(() => {
+        if (commentsData.length > 0) {
+            setComments(commentsData);
+            setCachedComments(commentsData);
+        }
+    }, [commentsData]);
+
     const announcements: any[] = [];
     const loadingAnnouncements = false;
-    const { data: comments = [] } = useComments();
 
     // Mutations
     const updateHearingStatusMutation = useUpdateHearingMutation();

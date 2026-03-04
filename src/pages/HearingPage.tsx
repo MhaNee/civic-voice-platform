@@ -5,32 +5,36 @@ import VotePanel from "@/components/VotePanel";
 import CaptionSummary from "@/components/CaptionSummary";
 import { Radio, Users, Clock, Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 
 export default function HearingPage() {
+  const { id } = useParams();
   const [hearing, setHearing] = useState<any>(null);
   const [recentlyViewed, setRecentlyViewed] = useLocalStorage<Array<{ id: string; title: string; timestamp: number }>>("app:recently-viewed-hearings", []);
 
   useEffect(() => {
-    supabase
-      .from("hearings")
-      .select("*")
-      .eq("status", "live" as any)
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          setHearing(d);
-          setRecentlyViewed(prev => {
-            const filtered = prev.filter(h => h.id !== d.id);
-            return [{ id: d.id, title: d.title, timestamp: Date.now() }, ...filtered].slice(0, 10);
-          });
-        }
-      });
-  }, []);
+    const query = supabase.from("hearings").select("*");
+
+    if (id) {
+      query.eq("id", id as any);
+    } else {
+      query.eq("status", "live" as any).limit(1);
+    }
+
+    query.single().then(({ data }) => {
+      if (data) {
+        const d = data as any;
+        setHearing(d);
+        setRecentlyViewed(prev => {
+          const filtered = prev.filter(h => h.id !== d.id);
+          return [{ id: d.id, title: d.title, timestamp: Date.now() }, ...filtered].slice(0, 10);
+        });
+      }
+    });
+  }, [id]);
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
@@ -54,7 +58,7 @@ export default function HearingPage() {
     return normalizedUrl;
   };
 
-  const hearingId = id || "";
+  const hearingId = id || hearing?.id || "";
 
   return (
     <Layout>

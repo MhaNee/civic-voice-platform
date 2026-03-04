@@ -19,9 +19,32 @@ const sentimentBadge = {
   negative: "bg-destructive/10 text-destructive",
 };
 
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useEffect, useState } from "react";
+
 export default function PeoplesView() {
-  const { data: users = [] } = useProfiles();
-  const { data: comments = [] } = useComments();
+  const [cachedUsers, setCachedUsers] = useLocalStorage<any[]>("app:users-cache", []);
+  const [cachedComments, setCachedComments] = useLocalStorage<any[]>("app:comments-cache", []);
+
+  const { data: usersData = [] } = useProfiles();
+  const { data: commentsData = [] } = useComments();
+
+  const [users, setUsers] = useState<any[]>(cachedUsers);
+  const [comments, setComments] = useState<any[]>(cachedComments);
+
+  useEffect(() => {
+    if (usersData) {
+      setUsers(usersData);
+      setCachedUsers(usersData);
+    }
+  }, [usersData]);
+
+  useEffect(() => {
+    if (commentsData) {
+      setComments(commentsData);
+      setCachedComments(commentsData);
+    }
+  }, [commentsData]);
 
   return (
     <Layout>

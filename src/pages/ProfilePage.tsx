@@ -41,8 +41,8 @@ export default function ProfilePage() {
         try {
             const { error } = await supabase
                 .from("profiles")
-                .update({ display_name: displayName, avatar_url: avatarUrl || null } as any)
-                .eq("user_id", user.id as any);
+                .update({ display_name: displayName, avatar_url: avatarUrl || null })
+                .eq("user_id", user.id);
             if (error) throw error;
             toast({ title: "Profile updated successfully" });
         } catch (err: any) {
@@ -220,8 +220,8 @@ export default function ProfilePage() {
                                         <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                                             <span>{new Date(c.created_at).toLocaleDateString()}</span>
                                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${c.sentiment === 'positive' ? 'bg-green-500/10 text-green-600' :
-                                                    c.sentiment === 'negative' ? 'bg-red-500/10 text-red-600' :
-                                                        'bg-muted text-muted-foreground'
+                                                c.sentiment === 'negative' ? 'bg-red-500/10 text-red-600' :
+                                                    'bg-muted text-muted-foreground'
                                                 }`}>{c.sentiment || 'neutral'}</span>
                                             <span>👍 {c.upvotes || 0}</span>
                                         </div>

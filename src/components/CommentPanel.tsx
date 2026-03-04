@@ -104,6 +104,12 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
     // Add to state immediately
     setComments(prev => [optimisticComment, ...prev]);
 
+    if (!hearingId) {
+      toast({ title: "Error", description: "Missing hearing context.", variant: "destructive" });
+      setSending(false);
+      return;
+    }
+
     const { error } = await supabase.from("comments").insert({
       hearing_id: hearingId,
       user_id: user.id,

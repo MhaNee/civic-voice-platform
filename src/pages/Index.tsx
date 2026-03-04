@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHearings, useComments } from "@/hooks/useData";
 import { useAuth } from "@/hooks/useAuth";
 import LandingPage from "@/components/LandingPage";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -22,14 +23,14 @@ export default function Index() {
   const [comments, setComments] = useState<any[]>(cachedComments);
 
   useEffect(() => {
-    if (hearingsData.length > 0) {
+    if (hearingsData) {
       setHearings(hearingsData);
       setCachedHearings(hearingsData);
     }
   }, [hearingsData]);
 
   useEffect(() => {
-    if (commentsData.length > 0) {
+    if (commentsData) {
       setComments(commentsData);
       setCachedComments(commentsData);
     }

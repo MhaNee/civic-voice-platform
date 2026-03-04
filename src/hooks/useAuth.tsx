@@ -19,7 +19,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<any | null>(() => {
+    try {
+      const cached = localStorage.getItem("app:profile-cache");
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -28,10 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Track online/offline status
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
@@ -48,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!error && data) {
         setProfile(data);
+        localStorage.setItem("app:profile-cache", JSON.stringify(data));
       }
     } catch (err) {
       // silently fail - profile is optional
@@ -158,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // 3. Clear query cache
-    try { queryClient.clear(); } catch {}
+    try { queryClient.clear(); } catch { }
 
     // 4. Reset state
     setUser(null);
