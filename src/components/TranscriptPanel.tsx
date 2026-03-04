@@ -53,7 +53,9 @@ export default function TranscriptPanel({ hearingId }: TranscriptPanelProps) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [hearingId]);
 

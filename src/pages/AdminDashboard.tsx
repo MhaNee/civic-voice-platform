@@ -249,21 +249,21 @@ export default function AdminDashboard() {
                                                 <Radio className="h-5 w-5" />
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground">Active Hearings</div>
-                                            <div className="mt-1 text-3xl font-bold">{hearings.filter(h => h.status === 'live').length}</div>
+                                            <div className="mt-1 text-3xl font-bold">{(Array.isArray(hearings) ? hearings : []).filter(h => h.status === 'live').length}</div>
                                         </div>
                                         <div className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-elevated">
                                             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
                                                 <Users className="h-5 w-5" />
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground">Civil Participants</div>
-                                            <div className="mt-1 text-3xl font-bold">{users.length}</div>
+                                            <div className="mt-1 text-3xl font-bold">{(Array.isArray(users) ? users : []).length}</div>
                                         </div>
                                         <div className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-elevated">
                                             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-success/10 text-success">
                                                 <TrendingUp className="h-5 w-5" />
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground">Total Comments</div>
-                                            <div className="mt-1 text-3xl font-bold">{comments.length}</div>
+                                            <div className="mt-1 text-3xl font-bold">{(Array.isArray(comments) ? comments : []).length}</div>
                                         </div>
                                     </div>
 
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
                                         <div className="rounded-xl border border-border bg-card p-6 shadow-card">
                                             <h3 className="mb-4 font-bold">Recent Hearings</h3>
                                             <div className="space-y-4">
-                                                {hearings.slice(0, 4).map(h => (
+                                                {(Array.isArray(hearings) ? hearings : []).slice(0, 4).map(h => (
                                                     <div key={h.id} className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0">
                                                         <div>
                                                             <p className="font-medium text-sm">{h.title}</p>
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
                                         <div className="rounded-xl border border-border bg-card p-6 shadow-card">
                                             <h3 className="mb-4 font-bold">New Registrations</h3>
                                             <div className="space-y-4">
-                                                {users.slice(0, 4).map(u => (
+                                                {(Array.isArray(users) ? users : []).slice(0, 4).map(u => (
                                                     <div key={u.id} className="flex items-center gap-3">
                                                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase">
                                                             {u.display_name.slice(0, 2)}
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
-                                                {users
+                                                {(Array.isArray(users) ? users : [])
                                                     .filter(u => (u.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()))
                                                     .map(u => {
                                                         const userComments = comments.filter(c => c.user_id === u.user_id);

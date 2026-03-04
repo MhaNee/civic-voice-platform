@@ -33,7 +33,7 @@ export default function PeoplesView() {
     if (hearingsData && hearingsData.length > 0) setHearings(hearingsData);
   }, [hearingsData]);
 
-  const totalViewers = (hearings || []).reduce((sum, h) => sum + (h.viewers || 0), 0);
+  const totalViewers = Array.isArray(hearings) ? hearings.reduce((sum, h) => sum + (h.viewers || 0), 0) : 0;
 
   return (
     <Layout>
@@ -47,10 +47,10 @@ export default function PeoplesView() {
 
         {/* Stats row */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard icon={<Users className="h-5 w-5" />} label="Total Participants" value={users.length.toLocaleString()} />
-          <StatsCard icon={<MessageSquare className="h-5 w-5" />} label="Comments Analyzed" value={comments.length.toLocaleString()} />
+          <StatsCard icon={<Users className="h-5 w-5" />} label="Total Participants" value={(Array.isArray(users) ? users.length : 0).toLocaleString()} />
+          <StatsCard icon={<MessageSquare className="h-5 w-5" />} label="Comments Analyzed" value={(Array.isArray(comments) ? comments.length : 0).toLocaleString()} />
           <StatsCard icon={<Radio className="h-5 w-5" />} label="Citizens Reached" value={totalViewers.toLocaleString()} />
-          <StatsCard icon={<TrendingUp className="h-5 w-5" />} label="Engagement" value={`${comments.length > 0 ? (comments.length / Math.max(users.length, 1)).toFixed(1) : 0} avg`} />
+          <StatsCard icon={<TrendingUp className="h-5 w-5" />} label="Engagement" value={`${(Array.isArray(comments) && Array.isArray(users) && comments.length > 0) ? (comments.length / Math.max(users.length, 1)).toFixed(1) : 0} avg`} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

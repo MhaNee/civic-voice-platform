@@ -99,11 +99,20 @@ export default function CommentPanel({ hearingId }: CommentPanelProps) {
 
     let sentiment = "neutral";
     try {
-      const { data } = await supabase.functions.invoke("analyze-sentiment", {
+      const response = await supabase.functions.invoke("analyze-sentiment", {
         body: { text: newComment, type: "sentiment" },
       });
-      if (data?.sentiment) sentiment = data.sentiment;
-    } catch { }
+
+      const { data, error } = response;
+      if (error) {
+        console.error("Sentiment service error:", error);
+      } else if (data?.sentiment) {
+        sentiment = data.sentiment;
+        console.log("AI Sentiment Result:", sentiment, data.confidence);
+      }
+    } catch (e) {
+      console.error("Exception during sentiment analysis:", e);
+    }
 
     // Optimistic Update
     const optimisticComment: Comment = {

@@ -15,21 +15,30 @@ serve(async (req) => {
 
     let systemPrompt = "";
     const body: any = {
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-1.5-flash", // Fixed: use established model name
       messages: [],
     };
 
     if (type === "sentiment") {
-      systemPrompt = "You are a sentiment analysis tool for civic engagement. Analyze the given text and classify it. Return both the sentiment label (positive/neutral/negative) and a confidence score between 0 and 1 indicating how sure you are of the classification.";
+      systemPrompt = `You are a sentiment analysis tool for civic engagement. 
+      Analyze the text and classify it into: positive, neutral, or negative.
+      
+      Guidelines:
+      - POSITIVE: Support, enthusiasm, constructive praise, or proactive suggestions that improve the discourse.
+      - NEUTRAL: Factual questions, objective observations, requests for information, or balanced feedback that isn't purely critical.
+      - NEGATIVE: Pure opposition, inflammatory language, frustration without resolution, or toxicity.
+      
+      Note: Constructive criticism that aims to improve a bill or process should be classified as NEUTRAL or POSITIVE engagement, not NEGATIVE.`;
+
       body.messages = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyze the sentiment of this comment about a legislative hearing: "${text}"` },
+        { role: "user", content: `Analyze this public comment: "${text}"` },
       ];
       body.tools = [{
         type: "function",
         function: {
           name: "classify_sentiment",
-          description: "Classify the sentiment of a public comment and include a confidence value",
+          description: "Classify the sentiment of a public comment",
           parameters: {
             type: "object",
             properties: {
@@ -58,7 +67,6 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "extract_questions",
-          description: "Extract questions from hearing and generate survey",
           parameters: {
             type: "object",
             properties: {
@@ -72,7 +80,6 @@ serve(async (req) => {
               },
             },
             required: ["extracted_questions", "survey_questions"],
-            additionalProperties: false,
           },
         },
       }];
@@ -81,11 +88,10 @@ serve(async (req) => {
       systemPrompt = "You are a real-time caption summarizer for live legislative hearings. Provide brief, clear closed-caption style summaries.";
       body.messages = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Create a brief 2-3 sentence closed-caption summary of what's being discussed:\n\n${text}` },
+        { role: "user", content: `Create a brief 2-3 sentence summary of this caption segment:\n\n${text}` },
       ];
     }
 
-    // Using a generic gateway if configured, otherwise fallback to default
     const GATEWAY_URL = Deno.env.get("AI_GATEWAY_URL") || "https://ai.gateway.lovable.dev/v1/chat/completions";
 
     const response = await fetch(GATEWAY_URL, {
@@ -98,19 +104,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      throw new Error(`AI Gateway error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -121,7 +117,16 @@ serve(async (req) => {
       if (toolCall) {
         result = JSON.parse(toolCall.function.arguments);
       } else {
-        result = { raw: data.choices?.[0]?.message?.content };
+        // Fallback: try to extract sentiment from content text if tool wasn't used
+        const content = data.choices?.[0]?.message?.content?.toLowerCase() || "";
+        if (type === "sentiment") {
+          let detected = "neutral";
+          if (content.includes("positive")) detected = "positive";
+          else if (content.includes("negative")) detected = "negative";
+          result = { sentiment: detected, confidence: 0.5 };
+        } else {
+          result = { raw: content };
+        }
       }
     } else {
       result = { text: data.choices?.[0]?.message?.content };
@@ -131,8 +136,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    console.error("Sentiment Error:", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Internal Server Error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
