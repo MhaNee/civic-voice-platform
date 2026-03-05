@@ -129,7 +129,7 @@ export default function HearingPage() {
 
             {/* Transcript - Boxed with internal scroll */}
             <div className="h-[400px] lg:h-[600px] overflow-hidden rounded-xl border border-border">
-              <TranscriptPanel hearingId={hearingId} />
+              <TranscriptPanel hearingId={hearingId} streamUrl={hearing?.stream_url} />
             </div>
           </div>
 
