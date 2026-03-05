@@ -41,8 +41,13 @@ serve(async (req) => {
     // Extract captions player response
     const captionMatch = pageHtml.match(/"captionTracks":\s*(\[.*?\])/);
     if (!captionMatch) {
-      // Try alternative: timedtext API directly
-      throw new Error("No captions found for this video. The video may not have captions enabled.");
+      return new Response(JSON.stringify({
+        success: false,
+        error: "No captions found for this video. Captions must be enabled on YouTube for AI transcript generation.",
+        aiProcessed: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const captionTracks = JSON.parse(captionMatch[1]);
@@ -102,7 +107,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-1.5-flash",
         messages: [
           {
             role: "system",

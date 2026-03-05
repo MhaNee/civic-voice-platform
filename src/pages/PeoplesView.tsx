@@ -13,25 +13,29 @@ const sentimentBadge = {
 };
 
 export default function PeoplesView() {
-  const [users, setUsers] = useLocalStorage<any[]>("app:users-cache", []);
-  const [comments, setComments] = useLocalStorage<any[]>("app:comments-cache", []);
-  const [hearings, setHearings] = useLocalStorage<any[]>("app:hearings-cache", []);
+  const [cachedUsers, setCachedUsers] = useLocalStorage<any[]>("app:users", []);
+  const [cachedComments, setCachedComments] = useLocalStorage<any[]>("app:comments", []);
+  const [cachedHearings, setCachedHearings] = useLocalStorage<any[]>("app:hearings", []);
 
   const { data: usersData } = useProfiles();
   const { data: commentsData } = useComments();
   const { data: hearingsData } = useHearings();
 
   useEffect(() => {
-    if (usersData && usersData.length > 0) setUsers(usersData);
-  }, [usersData]);
+    if (usersData && usersData.length > 0) setCachedUsers(usersData);
+  }, [usersData, setCachedUsers]);
 
   useEffect(() => {
-    if (commentsData && commentsData.length > 0) setComments(commentsData);
-  }, [commentsData]);
+    if (commentsData && commentsData.length > 0) setCachedComments(commentsData);
+  }, [commentsData, setCachedComments]);
 
   useEffect(() => {
-    if (hearingsData && hearingsData.length > 0) setHearings(hearingsData);
-  }, [hearingsData]);
+    if (hearingsData && hearingsData.length > 0) setCachedHearings(hearingsData);
+  }, [hearingsData, setCachedHearings]);
+
+  const users = (usersData && usersData.length > 0) ? usersData : cachedUsers;
+  const comments = (commentsData && commentsData.length > 0) ? commentsData : cachedComments;
+  const hearings = (hearingsData && hearingsData.length > 0) ? hearingsData : cachedHearings;
 
   const totalViewers = Array.isArray(hearings) ? hearings.reduce((sum, h) => sum + (h.viewers || 0), 0) : 0;
 
@@ -47,10 +51,10 @@ export default function PeoplesView() {
 
         {/* Stats row */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard icon={<Users className="h-5 w-5" />} label="Total Participants" value={(Array.isArray(users) ? users.length : 0).toLocaleString()} />
-          <StatsCard icon={<MessageSquare className="h-5 w-5" />} label="Comments Analyzed" value={(Array.isArray(comments) ? comments.length : 0).toLocaleString()} />
-          <StatsCard icon={<Radio className="h-5 w-5" />} label="Citizens Reached" value={totalViewers.toLocaleString()} />
-          <StatsCard icon={<TrendingUp className="h-5 w-5" />} label="Engagement" value={`${(Array.isArray(comments) && Array.isArray(users) && comments.length > 0) ? (comments.length / Math.max(users.length, 1)).toFixed(1) : 0} avg`} />
+          <StatsCard icon={<Users className="h-5 w-5" />} label="Participants" value={(Array.isArray(users) ? users.length : 0).toLocaleString()} />
+          <StatsCard icon={<Radio className="h-5 w-5" />} label="Total Viewers" value={totalViewers.toLocaleString()} />
+          <StatsCard icon={<Users className="h-5 w-5" />} label="Citizens Reached" value={(totalViewers + (Array.isArray(users) ? users.length : 0)).toLocaleString()} />
+          <StatsCard icon={<MessageSquare className="h-5 w-5" />} label="Engagement" value={`${(Array.isArray(comments) && Array.isArray(users) && comments.length > 0) ? (comments.length / Math.max(users.length, 1)).toFixed(1) : 0} avg`} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

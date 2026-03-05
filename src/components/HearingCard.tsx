@@ -16,7 +16,7 @@ export default function HearingCard({ id, title, committee, scheduled_at, status
 
   return (
     <Link
-      to="/hearing"
+      to={`/hearing/${id}`}
       className="group block rounded-xl border border-border bg-card p-5 shadow-card transition-all hover:shadow-elevated hover:-translate-y-0.5"
     >
       <div className="flex items-start justify-between">

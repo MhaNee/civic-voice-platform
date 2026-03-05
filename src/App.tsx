@@ -12,6 +12,7 @@ import InsightsPage from "./pages/InsightsPage";
 import AuthPage from "./pages/AuthPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProfilePage from "./pages/ProfilePage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -44,11 +45,13 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/hearing" element={<HearingPage />} />
+            <Route path="/hearing/:id" element={<HearingPage />} />
             <Route path="/sentiment" element={<ProtectedRoute><SentimentDashboard /></ProtectedRoute>} />
             <Route path="/peoples-view" element={<ProtectedRoute><PeoplesView /></ProtectedRoute>} />
             <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/announcements" element={<AnnouncementsPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

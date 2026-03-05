@@ -9,18 +9,23 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useViewerCount } from "@/hooks/useViewerCount";
+import { useAuth } from "@/hooks/useAuth";
+import { useTrackInteractionMutation, useComments } from "@/hooks/useData";
+import { MessageSquare } from "lucide-react";
 
 
 export default function HearingPage() {
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const { user } = useAuth();
   const [hearing, setHearing] = useState<any>(null);
   const [recentlyViewed, setRecentlyViewed] = useLocalStorage<Array<{ id: string; title: string; timestamp: number }>>("app:recently-viewed-hearings", []);
+  const trackInteraction = useTrackInteractionMutation();
 
   useEffect(() => {
     const query = supabase.from("hearings").select("*");
 
-    if (id) {
-      query.eq("id", id as any);
+    if (paramId) {
+      query.eq("id", paramId as any);
     } else {
       query.eq("status", "live" as any).limit(1);
     }
@@ -35,10 +40,40 @@ export default function HearingPage() {
         });
       }
     });
-  }, [id]);
+  }, [paramId]);
 
-  const hearingId = id || hearing?.id || "";
+  const hearingId = paramId || hearing?.id || "";
   const liveViewers = useViewerCount(hearingId || undefined);
+  const { data: hearingComments = [] } = useComments(hearingId);
+
+  useEffect(() => {
+    if (!hearingId) return;
+
+    const sessionsViews = JSON.parse(sessionStorage.getItem("app:session-viewed-hearings") || "[]");
+
+    if (!sessionsViews.includes(hearingId)) {
+      // Direct update for total viewers (historical)
+      supabase.from("hearings")
+        .select("viewers")
+        .eq("id", hearingId as any)
+        .single()
+        .then(({ data }) => {
+          const current = (data as any)?.viewers || 0;
+          supabase.from("hearings")
+            .update({ viewers: current + 1 } as any)
+            .eq("id", hearingId as any)
+            .then(() => {
+              sessionStorage.setItem("app:session-viewed-hearings", JSON.stringify([...sessionsViews, hearingId]));
+            });
+        });
+    }
+  }, [hearingId]);
+
+  useEffect(() => {
+    if (user && hearingId) {
+      trackInteraction.mutate({ userId: user.id, hearingId, type: "watched" });
+    }
+  }, [user, hearingId]);
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
@@ -84,6 +119,10 @@ export default function HearingPage() {
             <span className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
               {liveViewers > 0 ? liveViewers.toLocaleString() : (hearing?.viewers?.toLocaleString() || "0")} watching
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              {hearingComments.length} comments
             </span>
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
@@ -137,7 +176,7 @@ export default function HearingPage() {
           <div className="lg:col-span-1">
             {hearingId ? (
               <div className="h-[500px] lg:h-[calc(100vh-250px)] lg:sticky lg:top-24">
-                <CommentPanel hearingId={hearingId} />
+                <CommentPanel key={hearingId} hearingId={hearingId} />
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">

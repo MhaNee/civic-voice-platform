@@ -15,7 +15,7 @@ serve(async (req) => {
 
     let systemPrompt = "";
     const body: any = {
-      model: "google/gemini-3-flash-preview",
+      model: "google/gemini-1.5-flash",
       messages: [],
     };
 
