@@ -1,68 +1,170 @@
 import Layout from "@/components/Layout";
-import {
-  FileText,
-  AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  CheckCircle,
-  XCircle,
-  Download,
-} from "lucide-react";
+import { FileText, Loader2, Sparkles, AlertTriangle, TrendingUp, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useHearings, useComments } from "@/hooks/useData";
 
-const executiveSummary = `The Clean Air Amendment Act hearing revealed strong public support for cleaner air goals (52% positive sentiment) but significant concerns about implementation timeline and economic impact on small businesses. Key stakeholders agree on the need for emissions reduction but diverge on the pace of transition. AI analysis suggests extending the timeline from 5 to 8 years and strengthening the small business tax credit program would increase public approval by an estimated 15%.`;
+interface InsightData {
+  executive_summary: string;
+  key_arguments_for: string[];
+  key_arguments_against: string[];
+  risk_indicators: Array<{ topic: string; risk: string; detail: string }>;
+  recommendations: string[];
+}
 
-const keyArguments = {
-  forBill: [
-    "$4.2B annual savings in healthcare costs",
-    "23% reduction in particulate matter within 5 years",
-    "Tax incentives for small business compliance",
-    "Phased implementation reduces economic shock",
-  ],
-  againstBill: [
-    "5-year timeline is unrealistic for manufacturers",
-    "Compliance costs may force small plant closures",
-    "Rural communities disproportionately affected",
-    "Insufficient transition funding in current draft",
-  ],
-};
-
-const riskIndicators = [
-  { topic: "Job displacement", risk: "high", detail: "65% negative sentiment on employment impact" },
-  { topic: "Timeline feasibility", risk: "high", detail: "72% believe 5-year timeline is too aggressive" },
-  { topic: "Small business burden", risk: "medium", detail: "Mixed sentiment - tax credits help but may not be enough" },
-  { topic: "Public health framing", risk: "low", detail: "85% positive sentiment on health benefits" },
-];
-
-const riskColors = {
+const riskColors: Record<string, string> = {
   high: "bg-destructive/10 text-destructive",
   medium: "bg-warning/10 text-warning",
   low: "bg-success/10 text-success",
 };
 
 export default function InsightsPage() {
+  const { data: hearings } = useHearings();
+  const { data: comments } = useComments();
+  const [insights, setInsights] = useState<InsightData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateInsights = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Build context from hearings and comments
+      const hearingContext = (hearings || [])
+        .slice(0, 5)
+        .map((h: any) => `Hearing: "${h.title}" (${h.committee}) - Status: ${h.status}, Viewers: ${h.viewers || 0}`)
+        .join("\n");
+
+      const commentContext = (comments || [])
+        .slice(0, 50)
+        .map((c: any) => `[${c.sentiment}] ${c.text}`)
+        .join("\n");
+
+      const fullContext = `HEARINGS:\n${hearingContext}\n\nPUBLIC COMMENTS:\n${commentContext}`;
+
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-sentiment", {
+        body: { text: fullContext, type: "insights" },
+      });
+
+      if (fnError) throw fnError;
+      if (data) setInsights(data);
+    } catch (e) {
+      console.error("Insights error:", e);
+      setError("Failed to generate insights. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const hasData = (hearings && hearings.length > 0) || (comments && comments.length > 0);
+
   return (
     <Layout>
       <div className="container py-8">
         <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">Legislative Insights</h1>
-            <p className="mt-1 text-muted-foreground">
-              AI-generated briefing for policymakers.
-            </p>
+            <p className="mt-1 text-muted-foreground">AI-generated briefing for policymakers.</p>
           </div>
+          {hasData && (
+            <Button onClick={generateInsights} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              {loading ? "Generating..." : "Generate Insights"}
+            </Button>
+          )}
         </div>
 
-        {/* Placeholder Summary */}
-        <div className="mb-8 rounded-xl border border-border bg-card p-12 shadow-card text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
-            <FileText className="h-8 w-8" />
+        {error && (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
           </div>
-          <h2 className="font-display text-2xl font-bold text-foreground">AI Insights Pipeline</h2>
-          <p className="mx-auto mt-2 max-w-sm text-muted-foreground">
-            Our AI engine is currently collecting data from live hearings and citizen participation.
-            Deep legislative insights and risk monitoring will appear here as more sessions are processed.
-          </p>
-        </div>
+        )}
+
+        {insights ? (
+          <div className="space-y-6">
+            {/* Executive Summary */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+              <div className="mb-3 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-accent" />
+                <h2 className="font-display text-xl font-bold text-foreground">Executive Summary</h2>
+              </div>
+              <p className="text-sm leading-relaxed text-foreground/85">{insights.executive_summary}</p>
+            </div>
+
+            {/* Key Arguments */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+                <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-bold text-foreground">
+                  <CheckCircle className="h-5 w-5 text-success" /> Arguments For
+                </h3>
+                <ul className="space-y-2">
+                  {insights.key_arguments_for.map((arg, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
+                      <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      {arg}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+                <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-bold text-foreground">
+                  <XCircle className="h-5 w-5 text-destructive" /> Arguments Against
+                </h3>
+                <ul className="space-y-2">
+                  {insights.key_arguments_against.map((arg, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      {arg}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Risk Indicators */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+              <h3 className="mb-4 font-display text-lg font-bold text-foreground">Risk Indicators</h3>
+              <div className="space-y-3">
+                {insights.risk_indicators.map((risk, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-border bg-background p-3">
+                    <div>
+                      <span className="text-sm font-semibold text-foreground">{risk.topic}</span>
+                      <p className="text-xs text-muted-foreground">{risk.detail}</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${riskColors[risk.risk] || riskColors.medium}`}>
+                      {risk.risk}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+              <h3 className="mb-3 font-display text-lg font-bold text-foreground">AI Recommendations</h3>
+              <ul className="space-y-2">
+                {insights.recommendations.map((rec, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground/85">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    {rec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card p-12 shadow-card text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <FileText className="h-8 w-8" />
+            </div>
+            <h2 className="font-display text-2xl font-bold text-foreground">AI Insights Pipeline</h2>
+            <p className="mx-auto mt-2 max-w-sm text-muted-foreground">
+              {hasData
+                ? 'Click "Generate Insights" to create an AI-powered legislative briefing from hearing data and citizen comments.'
+                : "Insights will be available once hearings and citizen comments are collected."}
+            </p>
+          </div>
+        )}
       </div>
     </Layout>
   );
