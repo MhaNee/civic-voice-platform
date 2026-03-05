@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                         <>
                             {activeTab === "overview" && (
                                 <div className="space-y-8">
-                                    <div className="grid gap-6 md:grid-cols-4">
+                                    <div className="grid gap-6 md:grid-cols-3 xl:grid-cols-6">
                                         <div className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-elevated">
                                             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                                 <Radio className="h-5 w-5" />
@@ -299,6 +299,13 @@ export default function AdminDashboard() {
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground">Total Hearings</div>
                                             <div className="mt-1 text-3xl font-bold">{(Array.isArray(hearings) ? hearings : []).length}</div>
+                                        </div>
+                                        <div className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-elevated cursor-pointer" onClick={() => setActiveTab("announcements")}>
+                                            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
+                                                <Bell className="h-5 w-5" />
+                                            </div>
+                                            <div className="text-sm font-medium text-muted-foreground">Total Posts</div>
+                                            <div className="mt-1 text-3xl font-bold">{(Array.isArray(announcements) ? announcements : []).length}</div>
                                         </div>
                                     </div>
 
