@@ -103,11 +103,15 @@ export function useProfiles() {
     });
 }
 
-export function useComments() {
+export function useComments(hearingId?: string) {
     return useQuery({
-        queryKey: ["comments"],
+        queryKey: ["comments", hearingId],
         queryFn: async () => {
-            const { data, error } = await supabase.from("comments").select("*");
+            let query = supabase.from("comments").select("*");
+            if (hearingId !== undefined) {
+                query = query.eq("hearing_id", hearingId as any);
+            }
+            const { data, error } = await query.order("created_at", { ascending: false });
             if (error) throw error;
             return data as any[];
         },

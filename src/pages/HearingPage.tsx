@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useViewerCount } from "@/hooks/useViewerCount";
 import { useAuth } from "@/hooks/useAuth";
-import { useTrackInteractionMutation } from "@/hooks/useData";
+import { useTrackInteractionMutation, useComments } from "@/hooks/useData";
+import { MessageSquare } from "lucide-react";
 
 
 export default function HearingPage() {
@@ -43,6 +44,7 @@ export default function HearingPage() {
 
   const hearingId = id || hearing?.id || "";
   const liveViewers = useViewerCount(hearingId || undefined);
+  const { data: hearingComments = [] } = useComments(hearingId);
 
   useEffect(() => {
     if (!hearingId) return;
@@ -119,6 +121,10 @@ export default function HearingPage() {
               {liveViewers > 0 ? liveViewers.toLocaleString() : (hearing?.viewers?.toLocaleString() || "0")} watching
             </span>
             <span className="flex items-center gap-1.5">
+              <MessageSquare className="h-4 w-4" />
+              {hearingComments.length} comments
+            </span>
+            <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
               Started recently
             </span>
@@ -170,7 +176,7 @@ export default function HearingPage() {
           <div className="lg:col-span-1">
             {hearingId ? (
               <div className="h-[500px] lg:h-[calc(100vh-250px)] lg:sticky lg:top-24">
-                <CommentPanel hearingId={hearingId} />
+                <CommentPanel key={hearingId} hearingId={hearingId} />
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
