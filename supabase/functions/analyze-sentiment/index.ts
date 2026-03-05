@@ -88,8 +88,80 @@ serve(async (req) => {
       systemPrompt = "You are a real-time caption summarizer for live legislative hearings. Provide brief, clear closed-caption style summaries.";
       body.messages = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Create a brief 2-3 sentence summary of this caption segment:\n\n${text}` },
+        { role: "user", content: `Create a brief 2-3 sentence summary of this hearing transcript:\n\n${text}` },
       ];
+    } else if (type === "topics") {
+      systemPrompt = "You are an AI that extracts key discussion topics from civic engagement comments.";
+      body.messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Extract the top 8-12 key topics/themes from these public comments. For each topic, estimate its prominence (weight 1-10) and overall sentiment.\n\nComments:\n${text}` },
+      ];
+      body.tools = [{
+        type: "function",
+        function: {
+          name: "extract_topics",
+          description: "Extract key topics from public comments",
+          parameters: {
+            type: "object",
+            properties: {
+              topics: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    label: { type: "string", description: "Short topic label (1-3 words)" },
+                    weight: { type: "number", description: "Prominence score 1-10" },
+                    sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                  },
+                  required: ["label", "weight", "sentiment"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["topics"],
+            additionalProperties: false,
+          },
+        },
+      }];
+      body.tool_choice = { type: "function", function: { name: "extract_topics" } };
+    } else if (type === "insights") {
+      systemPrompt = "You are a legislative analyst AI. Generate structured policy insights from hearing data and public comments.";
+      body.messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Analyze this legislative hearing data and public feedback. Generate a comprehensive policy briefing.\n\n${text}` },
+      ];
+      body.tools = [{
+        type: "function",
+        function: {
+          name: "generate_insights",
+          description: "Generate structured legislative insights",
+          parameters: {
+            type: "object",
+            properties: {
+              executive_summary: { type: "string", description: "2-3 paragraph executive summary" },
+              key_arguments_for: { type: "array", items: { type: "string" }, description: "3-5 arguments supporting the legislation" },
+              key_arguments_against: { type: "array", items: { type: "string" }, description: "3-5 arguments against the legislation" },
+              risk_indicators: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    topic: { type: "string" },
+                    risk: { type: "string", enum: ["high", "medium", "low"] },
+                    detail: { type: "string" },
+                  },
+                  required: ["topic", "risk", "detail"],
+                  additionalProperties: false,
+                },
+              },
+              recommendations: { type: "array", items: { type: "string" }, description: "3-5 actionable recommendations" },
+            },
+            required: ["executive_summary", "key_arguments_for", "key_arguments_against", "risk_indicators", "recommendations"],
+            additionalProperties: false,
+          },
+        },
+      }];
+      body.tool_choice = { type: "function", function: { name: "generate_insights" } };
     }
 
     const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -112,7 +184,7 @@ serve(async (req) => {
     const data = await response.json();
     let result: any;
 
-    if (type === "sentiment" || type === "questions") {
+    if (type === "sentiment" || type === "questions" || type === "topics" || type === "insights") {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (toolCall) {
         result = JSON.parse(toolCall.function.arguments);

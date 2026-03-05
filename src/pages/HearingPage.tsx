@@ -122,7 +122,7 @@ export default function HearingPage() {
             </div>
 
             {/* Caption Summary */}
-            <CaptionSummary transcriptText={hearing?.transcript || ""} />
+            <CaptionSummary hearingId={hearingId} />
 
             {/* Vote */}
             {hearingId && <VotePanel hearingId={hearingId} />}
