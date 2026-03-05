@@ -62,13 +62,14 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active
+                  className={`flex items-center gap-2 rounded-lg p-2 lg:px-3 lg:py-2 text-sm font-medium transition-colors ${active
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
+                  title={item.label}
                 >
                   <item.icon className="h-4 w-4" />
-                  {item.label}
+                  <span className="hidden lg:inline">{item.label}</span>
                 </Link>
               );
             })}
@@ -76,13 +77,14 @@ export default function Layout({ children }: { children: ReactNode }) {
             {isAdmin && (
               <Link
                 to="/admin"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${location.pathname === "/admin"
+                className={`flex items-center gap-2 rounded-lg p-2 lg:px-3 lg:py-2 text-sm font-medium transition-colors ${location.pathname === "/admin"
                   ? "bg-primary text-primary-foreground"
                   : "text-accent hover:bg-accent/10"
                   }`}
+                title="Admin"
               >
                 <Shield className="h-4 w-4" />
-                Admin
+                <span className="hidden lg:inline">Admin</span>
               </Link>
             )}
           </nav>

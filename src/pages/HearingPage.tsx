@@ -5,35 +5,84 @@ import VotePanel from "@/components/VotePanel";
 import CaptionSummary from "@/components/CaptionSummary";
 import { Radio, Users, Clock, Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
-const MOCK_TRANSCRIPT_TEXT = `Good morning. We're convening today to discuss the proposed Clean Air Amendment Act. Our research shows a 23% reduction in particulate matter is achievable within 5 years. The health benefits alone would save an estimated $4.2 billion annually. What about the economic impact on small manufacturers? We recommend a phased implementation with tax incentives for small businesses. While we support cleaner air goals, the timeline is unrealistic. Our members need at minimum 8 years.`;
 
 export default function HearingPage() {
+  const { id } = useParams();
   const [hearing, setHearing] = useState<any>(null);
   const [recentlyViewed, setRecentlyViewed] = useLocalStorage<Array<{ id: string; title: string; timestamp: number }>>("app:recently-viewed-hearings", []);
 
   useEffect(() => {
-    supabase
-      .from("hearings")
-      .select("*")
-      .eq("status", "live" as any)
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          setHearing(d);
-          setRecentlyViewed(prev => {
-            const filtered = prev.filter(h => h.id !== d.id);
-            return [{ id: d.id, title: d.title, timestamp: Date.now() }, ...filtered].slice(0, 10);
-          });
-        }
-      });
-  }, []);
+    const query = supabase.from("hearings").select("*");
 
-  const hearingId = hearing?.id || "";
+    if (id) {
+      query.eq("id", id as any);
+    } else {
+      query.eq("status", "live" as any).limit(1);
+    }
+
+    query.single().then(({ data }) => {
+      if (data) {
+        const d = data as any;
+        setHearing(d);
+        setRecentlyViewed(prev => {
+          const filtered = prev.filter(h => h.id !== d.id);
+          return [{ id: d.id, title: d.title, timestamp: Date.now() }, ...filtered].slice(0, 10);
+        });
+      }
+    });
+  }, [id]);
+
+  const hearingId = id || hearing?.id || "";
+
+  useEffect(() => {
+    if (!hearingId) return;
+
+    // Track views globally for this session
+    const sessionsViews = JSON.parse(sessionStorage.getItem("app:viewed-sessions") || "[]");
+
+    if (!sessionsViews.includes(hearingId)) {
+      // RPC is not found, so use direct update
+      supabase.from("hearings")
+        .select("viewers")
+        .eq("id", hearingId as any)
+        .single()
+        .then(({ data }) => {
+          const current = (data as any)?.viewers || 0;
+          supabase.from("hearings")
+            .update({ viewers: current + 1 } as any)
+            .eq("id", hearingId as any)
+            .then(() => {
+              sessionStorage.setItem("app:viewed-sessions", JSON.stringify([...sessionsViews, hearingId]));
+            });
+        });
+    }
+  }, [hearingId]);
+
+  const getEmbedUrl = (url: string) => {
+    if (!url) return "";
+
+    // First, normalize m.youtube.com to youtube.com
+    let normalizedUrl = url.replace("m.youtube.com", "youtube.com");
+
+    // Standard ID extraction for various youtube formats (watch, embed, live, shorts, etc)
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|live\/|shorts\/)([^#\&\?]*).*/;
+    const match = normalizedUrl.match(regExp);
+
+    if (match && match[2].trim().length === 11) {
+      return `https://www.youtube.com/embed/${match[2].trim()}`;
+    }
+
+    // Fallback for cases where it's already an embed link but might have extra params
+    if (normalizedUrl.includes("youtube.com/embed/")) {
+      return normalizedUrl;
+    }
+
+    return normalizedUrl;
+  };
 
   return (
     <Layout>
@@ -51,16 +100,16 @@ export default function HearingPage() {
             <span className="text-sm text-muted-foreground">{hearing?.committee || "Environment & Public Works Committee"}</span>
           </div>
           <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
-            {hearing?.title || "Clean Air Amendment Act - Environmental Impact Review"}
+            {hearing?.title || "Hearing in Progress"}
           </h1>
           <div className="mt-2 flex items-center gap-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Users className="h-4 w-4" />
-              {hearing?.viewers?.toLocaleString() || "12,847"} watching
+              {hearing?.viewers?.toLocaleString() || "0"} watching
             </span>
             <span className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />
-              Started 1h 45m ago
+              Started recently
             </span>
             <button className="flex items-center gap-1.5 text-accent hover:underline">
               <Download className="h-4 w-4" />
@@ -77,7 +126,7 @@ export default function HearingPage() {
             <div className="aspect-video overflow-hidden rounded-xl bg-primary">
               {hearing?.stream_url ? (
                 <iframe
-                  src={hearing.stream_url}
+                  src={getEmbedUrl(hearing.stream_url)}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -95,14 +144,14 @@ export default function HearingPage() {
             </div>
 
             {/* Caption Summary */}
-            <CaptionSummary transcriptText={MOCK_TRANSCRIPT_TEXT} />
+            <CaptionSummary transcriptText={hearing?.transcript || ""} />
 
             {/* Vote */}
             {hearingId && <VotePanel hearingId={hearingId} />}
 
             {/* Transcript - Boxed with internal scroll */}
             <div className="h-[400px] lg:h-[600px] overflow-hidden rounded-xl border border-border">
-              <TranscriptPanel />
+              <TranscriptPanel hearingId={hearingId} />
             </div>
           </div>
 

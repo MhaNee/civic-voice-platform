@@ -31,10 +31,10 @@ export function useCreateHearingMutation() {
 export function useUpdateHearingMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: string }) => {
+        mutationFn: async ({ id, ...updates }: { id: string;[key: string]: any }) => {
             const { error } = await supabase
                 .from("hearings")
-                .update({ status } as any)
+                .update(updates as any)
                 .eq("id", id as any);
             if (error) throw error;
         },
@@ -137,6 +137,23 @@ export function useDeleteProfileMutation() {
             queryClient.invalidateQueries({ queryKey: ["profiles"] });
             queryClient.invalidateQueries({ queryKey: ["comments"] });
         },
+    });
+}
+
+export function useTranscripts(hearingId?: string) {
+    return useQuery({
+        queryKey: ["transcripts", hearingId],
+        queryFn: async () => {
+            if (!hearingId) return [];
+            const { data, error } = await supabase
+                .from("transcript_entries")
+                .select("*")
+                .eq("hearing_id", hearingId as any)
+                .order("created_at", { ascending: true });
+            if (error) throw error;
+            return data as any[];
+        },
+        enabled: !!hearingId,
     });
 }
 

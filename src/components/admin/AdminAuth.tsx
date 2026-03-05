@@ -40,8 +40,18 @@ export default function AdminAuth() {
     // If user is already logged in but reached here, they might be a "Citizen" trying to access admin
     if (user) {
         return (
-            <div className="flex min-h-[80vh] flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md rounded-2xl border border-destructive/20 bg-card p-8 text-center shadow-card">
+            <div className="relative min-h-[calc(100vh-64px)] w-full flex items-center justify-center p-4 overflow-hidden">
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0 z-0">
+                    <img
+                        src="/images/PARLIAMENT-4-1-678x381.jpg"
+                        alt="Background"
+                        className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
+                </div>
+
+                <div className="relative z-10 w-full max-w-md rounded-2xl border border-destructive/20 bg-card/90 p-8 text-center shadow-card backdrop-blur-md">
                     <Shield className="mx-auto h-16 w-16 text-destructive opacity-30" />
                     <h2 className="mt-6 text-2xl font-bold text-foreground">Restricted Port</h2>
                     <p className="mt-4 text-muted-foreground">
@@ -61,8 +71,18 @@ export default function AdminAuth() {
     }
 
     return (
-        <div className="flex min-h-[80vh] items-center justify-center p-4">
-            <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-elevated">
+        <div className="relative min-h-[calc(100vh-64px)] w-full flex items-center justify-center p-4 overflow-hidden">
+            {/* Background Image with Overlay */}
+            <div className="absolute inset-0 z-0">
+                <img
+                    src="/images/PARLIAMENT-4-1-678x381.jpg"
+                    alt="Background"
+                    className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]" />
+            </div>
+
+            <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card/90 p-8 shadow-elevated backdrop-blur-md">
                 <div className="mb-8 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-glow">
                         <Shield className="h-8 w-8 text-primary-foreground" />
