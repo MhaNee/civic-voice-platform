@@ -218,7 +218,7 @@ export function useDeleteAnnouncementMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase.from("announcements").delete().eq("id", id as any);
+            const { error } = await (supabase as any).from("announcements").delete().eq("id", id);
             if (error) throw error;
         },
         onSuccess: () => {
