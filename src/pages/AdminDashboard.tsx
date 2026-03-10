@@ -453,7 +453,7 @@ export default function AdminDashboard() {
                                                         const neuPct = totalComments ? Math.round((neu / totalComments) * 100) : 0;
                                                         return (
                                                             <tr key={u.id} className="transition-colors hover:bg-muted/30">
-                                                                <td className="px-6 py-4 flex items-center gap-3">
+                                                                <td className="px-4 sm:px-6 py-4 flex items-center gap-3">
                                                                     <div className="h-8 w-8 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold">
                                                                         {u.display_name.slice(0, 2).toUpperCase()}
                                                                     </div>
