@@ -184,7 +184,7 @@ export default function ProfilePage() {
                             Account Info
                         </h2>
                         <div className="space-y-4 text-sm">
-                            <div className="flex justify-between border-b border-border pb-2">
+                            <div className="flex flex-col sm:flex-row justify-between border-b border-border pb-2 gap-1">
                                 <span className="text-muted-foreground">Account Type</span>
                                 <span className="flex items-center gap-1 font-medium capitalize">
                                     {profile?.role === 'admin' ? <Shield className="h-3 w-3 text-primary" /> : null}
