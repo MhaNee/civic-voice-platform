@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                         <>
                             {activeTab === "overview" && (
                                 <div className="space-y-8">
-                                    <div className="grid gap-6 md:grid-cols-3 xl:grid-cols-6">
+                                    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                                         <div className="group rounded-xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-elevated">
                                             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                                 <Radio className="h-5 w-5" />
