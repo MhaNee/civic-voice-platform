@@ -1,9 +1,19 @@
-import { ThumbsUp, Clock, User, Loader2, Sparkles } from "lucide-react";
+import { ThumbsUp, Clock, User, Loader2, Sparkles, ClipboardPaste } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranscripts } from "@/hooks/useData";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface TranscriptEntry {
   id: string;
@@ -34,12 +44,10 @@ function extractVideoId(url: string): string | null {
 }
 
 async function fetchCaptionsClientSide(videoId: string): Promise<Array<{ start: number; text: string }>> {
-  // Fetch the YouTube watch page from the browser (no CAPTCHA for real users)
   const resp = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
   if (!resp.ok) throw new Error("Failed to load YouTube page");
   const html = await resp.text();
 
-  // Extract ytInitialPlayerResponse
   const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});\s*(?:var|<\/script)/s);
   if (!match) throw new Error("Could not find player data on page");
 
@@ -73,8 +81,12 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
   const [entries, setEntries] = useState<TranscriptEntry[]>([]);
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
+  const [showPasteDialog, setShowPasteDialog] = useState(false);
+  const [pastedText, setPastedText] = useState("");
+  const [pasting, setPasting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (initialTranscripts.length > 0) {
@@ -123,11 +135,9 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
       const videoId = extractVideoId(streamUrl);
       if (!videoId) throw new Error("Invalid YouTube URL");
 
-      // Step 1: Extract captions client-side (browser isn't blocked by YouTube)
       const captions = await fetchCaptionsClientSide(videoId);
       setStatusMsg(`Got ${captions.length} captions. Processing with AI...`);
 
-      // Step 2: Send captions to edge function for AI processing & storage
       const { data, error } = await supabase.functions.invoke("extract-transcript", {
         body: { hearingId, captions },
       });
@@ -139,7 +149,6 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
         description: `${data.count} entries extracted${data.aiProcessed ? " with AI speaker detection" : ""}.`,
       });
 
-      // Refetch
       const { data: fresh } = await supabase
         .from("transcript_entries")
         .select("*")
@@ -158,6 +167,42 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
     setStatusMsg("");
   };
 
+  const handlePasteTranscript = async () => {
+    if (!hearingId || !pastedText.trim()) return;
+    setPasting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-transcript", {
+        body: { hearingId, rawText: pastedText.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Transcript Processed",
+        description: `${data.count} entries created from pasted text.`,
+      });
+
+      const { data: fresh } = await supabase
+        .from("transcript_entries")
+        .select("*")
+        .eq("hearing_id", hearingId as any)
+        .order("created_at", { ascending: true });
+      if (fresh) setEntries(fresh as any);
+
+      setShowPasteDialog(false);
+      setPastedText("");
+    } catch (e: any) {
+      console.error("Paste transcript error:", e);
+      toast({
+        title: "Error",
+        description: e.message || "Failed to process pasted transcript",
+        variant: "destructive",
+      });
+    }
+    setPasting(false);
+  };
+
   return (
     <div className="flex h-full flex-col bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-3">
@@ -167,6 +212,12 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
             <Button size="sm" variant="outline" onClick={handleGenerateTranscript} disabled={generating}>
               {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
               {generating ? "Extracting..." : "AI Transcript"}
+            </Button>
+          )}
+          {isAdmin && entries.length === 0 && !generating && (
+            <Button size="sm" variant="outline" onClick={() => setShowPasteDialog(true)}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+              Paste
             </Button>
           )}
           {entries.length > 0 && (
@@ -204,6 +255,11 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
                     ? 'Click "AI Transcript" above to extract captions from the YouTube video.'
                     : "The AI transcription engine will start processing once the audio feed becomes active."}
                 </p>
+                {isAdmin && (
+                  <p className="mt-2 text-xs text-muted-foreground opacity-60">
+                    Admins can also click "Paste" to manually provide transcript text.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -234,14 +290,49 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
         )}
       </div>
 
-      {entries.length > 0 && streamUrl && (
-        <div className="border-t border-border px-4 py-2 flex justify-end">
-          <Button size="sm" variant="ghost" onClick={handleGenerateTranscript} disabled={generating}>
-            {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-            Regenerate
-          </Button>
+      {entries.length > 0 && (
+        <div className="border-t border-border px-4 py-2 flex justify-end gap-2">
+          {isAdmin && (
+            <Button size="sm" variant="ghost" onClick={() => setShowPasteDialog(true)}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+              Paste Text
+            </Button>
+          )}
+          {streamUrl && (
+            <Button size="sm" variant="ghost" onClick={handleGenerateTranscript} disabled={generating}>
+              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+              Regenerate
+            </Button>
+          )}
         </div>
       )}
+
+      {/* Paste Transcript Dialog */}
+      <Dialog open={showPasteDialog} onOpenChange={setShowPasteDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Paste Transcript Text</DialogTitle>
+            <DialogDescription>
+              Paste raw transcript or caption text below. AI will identify speakers, assign timestamps, and analyze sentiment.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder={"Senator Smith: We need to address this issue urgently.\nDr. Johnson: The data clearly shows a trend...\n\nOr paste plain unformatted text — AI will segment it automatically."}
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            className="min-h-[200px] text-sm"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasteDialog(false)} disabled={pasting}>
+              Cancel
+            </Button>
+            <Button onClick={handlePasteTranscript} disabled={pasting || !pastedText.trim()}>
+              {pasting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+              {pasting ? "Processing..." : "Process with AI"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

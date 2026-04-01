@@ -18,34 +18,41 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { hearingId, captions } = await req.json();
+    const { hearingId, captions, rawText } = await req.json();
     if (!hearingId) throw new Error("hearingId is required");
-    if (!captions || !Array.isArray(captions) || captions.length === 0) {
-      throw new Error("captions array is required (extracted client-side)");
-    }
 
-    // Group into ~30s segments
-    const segments: Array<{ start: number; text: string }> = [];
-    let currentSegment = { start: captions[0].start || 0, texts: [captions[0].text] };
-    for (let i = 1; i < captions.length; i++) {
-      const caption = captions[i];
-      const captionStart = caption.start || 0;
-      if (captionStart - currentSegment.start > 30) {
-        segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-        currentSegment = { start: captionStart, texts: [caption.text] };
-      } else {
-        currentSegment.texts.push(caption.text);
+    let rawTranscript = "";
+
+    if (rawText && typeof rawText === "string" && rawText.trim().length > 0) {
+      // Admin pasted raw text — use it directly
+      rawTranscript = rawText.trim();
+      console.log(`Processing pasted raw text (${rawTranscript.length} chars)`);
+    } else if (captions && Array.isArray(captions) && captions.length > 0) {
+      // Client-extracted YouTube captions — group into ~30s segments
+      const segments: Array<{ start: number; text: string }> = [];
+      let currentSegment = { start: captions[0].start || 0, texts: [captions[0].text] };
+      for (let i = 1; i < captions.length; i++) {
+        const caption = captions[i];
+        const captionStart = caption.start || 0;
+        if (captionStart - currentSegment.start > 30) {
+          segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+          currentSegment = { start: captionStart, texts: [caption.text] };
+        } else {
+          currentSegment.texts.push(caption.text);
+        }
       }
+      segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+      rawTranscript = segments.map(s => `[${formatTimestamp(s.start)}] ${s.text}`).join("\n");
+      console.log(`Processing ${captions.length} captions into ${segments.length} segments`);
+    } else {
+      throw new Error("Either 'captions' array or 'rawText' string is required");
     }
-    segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-
-    console.log(`Processing ${captions.length} captions into ${segments.length} segments`);
 
     // AI processing
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const rawTranscript = segments.map(s => `[${formatTimestamp(s.start)}] ${s.text}`).join("\n");
+    
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -58,11 +65,12 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a transcript processor for legislative hearings. Given raw YouTube captions, produce structured transcript entries.
-For each segment, identify the speaker if possible (from context clues like "Chairman", "Senator", "Witness", etc). If you can't identify the speaker, use "Speaker".
+            content: `You are a transcript processor for legislative hearings. Given raw transcript text or YouTube captions, produce structured transcript entries.
+For each segment, identify the speaker if possible (from context clues like "Chairman", "Senator", "Witness", names, colons, etc). If you can't identify the speaker, use "Speaker".
+Assign logical timestamps (e.g. "0:00", "0:30", "1:00") based on the flow of conversation if none are present.
 Also classify each segment's sentiment as: positive, neutral, or negative.`,
           },
-          { role: "user", content: `Process these raw captions into structured transcript entries:\n\n${rawTranscript}` },
+          { role: "user", content: `Process this transcript text into structured entries:\n\n${rawTranscript}` },
         ],
         tools: [{
           type: "function",
