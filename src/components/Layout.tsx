@@ -24,7 +24,20 @@ const navItems = [
   { to: "/announcements", label: "Announcements", icon: Bell, authRequired: true },
 ];
 
-export default function Layout({ children }: { children: ReactNode }) {
+interface AdminSubNav {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+}
+
+interface LayoutProps {
+  children: ReactNode;
+  adminSubNav?: AdminSubNav[];
+}
+
+export default function Layout({ children, adminSubNav }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
