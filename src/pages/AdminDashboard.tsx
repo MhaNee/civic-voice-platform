@@ -180,7 +180,13 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <Layout>
+        <Layout adminSubNav={sidebarItems.map(item => ({
+            id: item.id,
+            label: item.label,
+            icon: item.icon,
+            active: activeTab === item.id,
+            onClick: () => setActiveTab(item.id as Tab),
+        }))}>
             <div className="flex min-h-[calc(100vh-64px)] bg-muted/30">
                 {/* Sidebar */}
                 <aside className="w-64 border-r border-border bg-card hidden md:block">
