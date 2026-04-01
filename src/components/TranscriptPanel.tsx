@@ -43,38 +43,6 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
-async function fetchCaptionsClientSide(videoId: string): Promise<Array<{ start: number; text: string }>> {
-  const resp = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-  if (!resp.ok) throw new Error("Failed to load YouTube page");
-  const html = await resp.text();
-
-  const match = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});\s*(?:var|<\/script)/s);
-  if (!match) throw new Error("Could not find player data on page");
-
-  const playerData = JSON.parse(match[1]);
-  const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  if (!tracks?.length) throw new Error("No captions available for this video");
-
-  const track = tracks.find((t: any) => t.languageCode === "en") || tracks[0];
-  if (!track?.baseUrl) throw new Error("No caption track URL found");
-
-  const captionResp = await fetch(track.baseUrl + "&fmt=srv3");
-  if (!captionResp.ok) throw new Error("Failed to fetch captions");
-  const xml = await captionResp.text();
-
-  const captionRegex = /<text[^>]*?start="([\d.]+)"[^>]*?>([\s\S]*?)<\/text>/g;
-  const captions: Array<{ start: number; text: string }> = [];
-  let m;
-  while ((m = captionRegex.exec(xml)) !== null) {
-    const text = m[2]
-      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/<[^>]+>/g, "").trim();
-    if (text) captions.push({ start: parseFloat(m[1]), text });
-  }
-
-  if (captions.length === 0) throw new Error("No caption text found in track");
-  return captions;
-}
 
 export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPanelProps) {
   const { data: initialTranscripts = [] } = useTranscripts(hearingId);
@@ -135,11 +103,10 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
       const videoId = extractVideoId(streamUrl);
       if (!videoId) throw new Error("Invalid YouTube URL");
 
-      const captions = await fetchCaptionsClientSide(videoId);
-      setStatusMsg(`Got ${captions.length} captions. Processing with AI...`);
+      setStatusMsg("Processing video with AI...");
 
       const { data, error } = await supabase.functions.invoke("extract-transcript", {
-        body: { hearingId, captions },
+        body: { hearingId, videoId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
