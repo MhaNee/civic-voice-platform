@@ -135,11 +135,10 @@ export default function TranscriptPanel({ hearingId, streamUrl }: TranscriptPane
       const videoId = extractVideoId(streamUrl);
       if (!videoId) throw new Error("Invalid YouTube URL");
 
-      const captions = await fetchCaptionsClientSide(videoId);
-      setStatusMsg(`Got ${captions.length} captions. Processing with AI...`);
+      setStatusMsg("Processing video with AI...");
 
       const { data, error } = await supabase.functions.invoke("extract-transcript", {
-        body: { hearingId, captions },
+        body: { hearingId, videoId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
