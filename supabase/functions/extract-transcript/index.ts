@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function formatTimestamp(seconds: number): string {
@@ -14,45 +15,96 @@ function formatTimestamp(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#x27;/g, "'")
+    .replace(/<[^>]+>/g, "").trim();
+}
+
+async function fetchYouTubeCaptions(videoId: string): Promise<string> {
+  // Try InnerTube API first
+  const innertubeResp = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      videoId,
+      context: {
+        client: { clientName: "WEB", clientVersion: "2.20250101.00.00", hl: "en" },
+      },
+    }),
+  });
+
+  if (!innertubeResp.ok) {
+    throw new Error(`InnerTube API returned ${innertubeResp.status}`);
+  }
+
+  const playerData = await innertubeResp.json();
+  const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+  if (!tracks || tracks.length === 0) {
+    throw new Error("No captions available for this video. Use the 'Paste' option to manually provide transcript text.");
+  }
+
+  // Prefer English, then any track
+  const track = tracks.find((t: any) => t.languageCode === "en") || tracks[0];
+  if (!track?.baseUrl) throw new Error("No caption track URL found");
+
+  // Fetch the caption XML
+  const captionResp = await fetch(track.baseUrl + "&fmt=srv3");
+  if (!captionResp.ok) throw new Error("Failed to fetch caption track");
+  const xml = await captionResp.text();
+
+  // Parse captions
+  const captionRegex = /<text[^>]*?start="([\d.]+)"[^>]*?>([\s\S]*?)<\/text>/g;
+  const captions: Array<{ start: number; text: string }> = [];
+  let m;
+  while ((m = captionRegex.exec(xml)) !== null) {
+    const text = decodeEntities(m[2]);
+    if (text) captions.push({ start: parseFloat(m[1]), text });
+  }
+
+  if (captions.length === 0) throw new Error("No caption text found in track");
+
+  // Group into ~30s segments
+  const segments: Array<{ start: number; text: string }> = [];
+  let currentSegment = { start: captions[0].start, texts: [captions[0].text] };
+  for (let i = 1; i < captions.length; i++) {
+    if (captions[i].start - currentSegment.start > 30) {
+      segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+      currentSegment = { start: captions[i].start, texts: [captions[i].text] };
+    } else {
+      currentSegment.texts.push(captions[i].text);
+    }
+  }
+  segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+
+  console.log(`Extracted ${captions.length} captions into ${segments.length} segments`);
+  return segments.map(s => `[${formatTimestamp(s.start)}] ${s.text}`).join("\n");
+}
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { hearingId, captions, rawText } = await req.json();
+    const body = await req.json();
+    const { hearingId, videoId, rawText } = body;
     if (!hearingId) throw new Error("hearingId is required");
 
     let rawTranscript = "";
 
     if (rawText && typeof rawText === "string" && rawText.trim().length > 0) {
-      // Admin pasted raw text — use it directly
       rawTranscript = rawText.trim();
       console.log(`Processing pasted raw text (${rawTranscript.length} chars)`);
-    } else if (captions && Array.isArray(captions) && captions.length > 0) {
-      // Client-extracted YouTube captions — group into ~30s segments
-      const segments: Array<{ start: number; text: string }> = [];
-      let currentSegment = { start: captions[0].start || 0, texts: [captions[0].text] };
-      for (let i = 1; i < captions.length; i++) {
-        const caption = captions[i];
-        const captionStart = caption.start || 0;
-        if (captionStart - currentSegment.start > 30) {
-          segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-          currentSegment = { start: captionStart, texts: [caption.text] };
-        } else {
-          currentSegment.texts.push(caption.text);
-        }
-      }
-      segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-      rawTranscript = segments.map(s => `[${formatTimestamp(s.start)}] ${s.text}`).join("\n");
-      console.log(`Processing ${captions.length} captions into ${segments.length} segments`);
+    } else if (videoId && typeof videoId === "string") {
+      rawTranscript = await fetchYouTubeCaptions(videoId);
     } else {
-      throw new Error("Either 'captions' array or 'rawText' string is required");
+      throw new Error("Either 'videoId' or 'rawText' is required");
     }
 
     // AI processing
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
-    
 
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -120,30 +172,32 @@ Also classify each segment's sentiment as: positive, neutral, or negative.`,
           entries = parsed.entries || [];
           aiProcessed = true;
         }
-      } catch { /* fallback */ }
+      } catch { /* fallback below */ }
     } else {
       const errText = await aiResp.text();
       console.error("AI error:", aiResp.status, errText);
     }
 
+    // Fallback: split rawTranscript into simple segments
     if (entries.length === 0) {
-      entries = segments.map(s => ({
-        timestamp: formatTimestamp(s.start),
+      const lines = rawTranscript.split("\n").filter(l => l.trim());
+      entries = lines.map((line, i) => ({
+        timestamp: `${Math.floor(i * 0.5)}:${String((i * 30) % 60).padStart(2, "0")}`,
         speaker: "Speaker",
         role: null,
-        text: s.text,
+        text: line.replace(/^\[[\d:]+\]\s*/, ""),
         sentiment: "neutral",
       }));
     }
 
-    // Clear and insert
+    // Clear old and insert new
     await supabase.from("transcript_entries").delete().eq("hearing_id", hearingId);
 
     const dbEntries = entries.map((e: any) => ({
       hearing_id: hearingId,
       speaker: e.speaker || "Speaker",
       role: e.role || null,
-      timestamp: e.timestamp,
+      timestamp: e.timestamp || "0:00",
       text: e.text,
       sentiment: e.sentiment || "neutral",
     }));
