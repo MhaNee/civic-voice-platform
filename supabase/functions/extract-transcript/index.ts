@@ -18,28 +18,35 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { hearingId, captions } = await req.json();
+    const { hearingId, captions, rawText } = await req.json();
     if (!hearingId) throw new Error("hearingId is required");
-    if (!captions || !Array.isArray(captions) || captions.length === 0) {
-      throw new Error("captions array is required (extracted client-side)");
-    }
 
-    // Group into ~30s segments
-    const segments: Array<{ start: number; text: string }> = [];
-    let currentSegment = { start: captions[0].start || 0, texts: [captions[0].text] };
-    for (let i = 1; i < captions.length; i++) {
-      const caption = captions[i];
-      const captionStart = caption.start || 0;
-      if (captionStart - currentSegment.start > 30) {
-        segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-        currentSegment = { start: captionStart, texts: [caption.text] };
-      } else {
-        currentSegment.texts.push(caption.text);
+    let rawTranscript = "";
+
+    if (rawText && typeof rawText === "string" && rawText.trim().length > 0) {
+      // Admin pasted raw text — use it directly
+      rawTranscript = rawText.trim();
+      console.log(`Processing pasted raw text (${rawTranscript.length} chars)`);
+    } else if (captions && Array.isArray(captions) && captions.length > 0) {
+      // Client-extracted YouTube captions — group into ~30s segments
+      const segments: Array<{ start: number; text: string }> = [];
+      let currentSegment = { start: captions[0].start || 0, texts: [captions[0].text] };
+      for (let i = 1; i < captions.length; i++) {
+        const caption = captions[i];
+        const captionStart = caption.start || 0;
+        if (captionStart - currentSegment.start > 30) {
+          segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+          currentSegment = { start: captionStart, texts: [caption.text] };
+        } else {
+          currentSegment.texts.push(caption.text);
+        }
       }
+      segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
+      rawTranscript = segments.map(s => `[${formatTimestamp(s.start)}] ${s.text}`).join("\n");
+      console.log(`Processing ${captions.length} captions into ${segments.length} segments`);
+    } else {
+      throw new Error("Either 'captions' array or 'rawText' string is required");
     }
-    segments.push({ start: currentSegment.start, text: currentSegment.texts.join(" ") });
-
-    console.log(`Processing ${captions.length} captions into ${segments.length} segments`);
 
     // AI processing
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
