@@ -180,7 +180,13 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <Layout>
+        <Layout adminSubNav={sidebarItems.map(item => ({
+            id: item.id,
+            label: item.label,
+            icon: item.icon,
+            active: activeTab === item.id,
+            onClick: () => setActiveTab(item.id as Tab),
+        }))}>
             <div className="flex min-h-[calc(100vh-64px)] bg-muted/30">
                 {/* Sidebar */}
                 <aside className="w-64 border-r border-border bg-card hidden md:block">
@@ -203,24 +209,6 @@ export default function AdminDashboard() {
 
                 {/* Main Content */}
                 <main className="flex-1 p-4 md:p-8">
-                    {/* Mobile Tabs */}
-                    <div className="mb-6 flex overflow-x-auto pb-2 md:hidden">
-                        <div className="flex gap-2">
-                            {sidebarItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveTab(item.id as Tab)}
-                                    className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTab === item.id
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-card text-muted-foreground border border-border"
-                                        }`}
-                                >
-                                    <item.icon className="h-4 w-4" />
-                                    {item.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
 
                     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
