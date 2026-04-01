@@ -65,11 +65,12 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a transcript processor for legislative hearings. Given raw YouTube captions, produce structured transcript entries.
-For each segment, identify the speaker if possible (from context clues like "Chairman", "Senator", "Witness", etc). If you can't identify the speaker, use "Speaker".
+            content: `You are a transcript processor for legislative hearings. Given raw transcript text or YouTube captions, produce structured transcript entries.
+For each segment, identify the speaker if possible (from context clues like "Chairman", "Senator", "Witness", names, colons, etc). If you can't identify the speaker, use "Speaker".
+Assign logical timestamps (e.g. "0:00", "0:30", "1:00") based on the flow of conversation if none are present.
 Also classify each segment's sentiment as: positive, neutral, or negative.`,
           },
-          { role: "user", content: `Process these raw captions into structured transcript entries:\n\n${rawTranscript}` },
+          { role: "user", content: `Process this transcript text into structured entries:\n\n${rawTranscript}` },
         ],
         tools: [{
           type: "function",
